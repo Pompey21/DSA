@@ -19,9 +19,10 @@ They will all be implemented in the .cpp file, but will be declared here.
 
 class UDPSocket {
     public:
-        UDPSocket(){};
-        UDPSocket(const UDPSocket &);
-        UDPSocket(Parser::Host localhost);
+        // constructors
+        UDPSocket(){}; // defautl constructor
+        UDPSocket(const UDPSocket &); // copy constructor
+        UDPSocket(Parser::Host localhost); // constructor that takes a Parser::Host argument
 
         void create();
         void enque(Parser::Host dest, unsigned int msg);
