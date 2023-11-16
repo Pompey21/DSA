@@ -26,6 +26,7 @@ class UDPSocket {
 
         void create();
         void enque(Parser::Host dest, unsigned int msg);
+        void enque_2(Parser::Host dest, unsigned int msg);
         std::vector<std::string> get_logs();
         UDPSocket& operator=(const UDPSocket & other);
 
@@ -37,6 +38,8 @@ class UDPSocket {
 
         std::vector<std::string> logs;
         std::vector<Msg> message_queue;
+        std::vector<unsigned long> message_queue_2;
+        std::mutex message_queue_2_lock;
         std::mutex message_queue_lock;
 
         std::vector<Msg> received_messages;

@@ -90,6 +90,16 @@ void UDPSocket::enque(Parser::Host dest, unsigned int msg) {
     message_queue_lock.unlock();
 }
 
+void UDPSocket::enque_2(Parser::Host dest, unsigned int msg) {
+    struct sockaddr_in destaddr = this->set_up_destination_address(dest);
+    message_queue_2_lock.lock();
+    message_queue_2.push_back(msg);
+    std::ostringstream oss;
+    oss << "bb " << msg;
+    logs.push_back(oss.str());
+    message_queue_2_lock.unlock();
+}
+
 
 void UDPSocket::send_message() {
     // Reference: https://stackoverflow.com/questions/5249418/warning-use-of-old-style-cast-in-g just try all of them until no error
@@ -104,6 +114,7 @@ void UDPSocket::send_message() {
         }
     }
 }
+
 
 // receive() implements reception of both, normal message as well as an acknowledgement!
 

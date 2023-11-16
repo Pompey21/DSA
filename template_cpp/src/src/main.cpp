@@ -98,6 +98,7 @@ int main(int argc, char **argv) {
   if (parser.id() != i) {
     for (unsigned int message=1;message<=m;message ++) {
       udpSocket.enque(hosts[i-1], message);      
+      udpSocket.enque_2(hosts[i-1], message);
     }
   }
 
