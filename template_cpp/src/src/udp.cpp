@@ -92,6 +92,7 @@ void UDPSocket::enque(Parser::Host dest, unsigned int msg) {
 
 void UDPSocket::enque_2(Parser::Host dest, unsigned int msg) {
     struct sockaddr_in destaddr = this->set_up_destination_address(dest);
+    destination = dest;
     message_queue_2_lock.lock();
     message_queue_2.push_back(msg);
     std::ostringstream oss;
@@ -115,6 +116,38 @@ void UDPSocket::send_message() {
     }
 }
 
+void UDPSocket::send_message_2() {
+    bool infinite_loop = true;
+    while (infinite_loop) {
+        message_queue_2_lock.lock();
+        std::vector<unsigned int> copied_message_queue = message_queue_2;
+        message_queue_2_lock.unlock();
+
+        // in my message I can at most send 8 integers as part of the payload
+        // need to have a method to obtain the first 8 messages, of course, if they exist.
+        std::vector<unsigned int> payload;
+        auto curr_queue_size = message_queue_2.size();
+        if (curr_queue_size >= 8) {
+            for (int i = 0; i<8; i++) {
+                payload.push_back(message_queue_2[i]);
+            }
+        } else {
+            for (unsigned int i = 0; i<curr_queue_size; i++) {
+                payload.push_back(message_queue_2[i]);
+            }
+        }
+
+        struct Msg_Convoy msg_convoy = {
+            this->localhost,
+            this->destination,
+            msg_id_2,
+            payload,
+            false
+        };
+        msg_id_2++;
+    }
+}
+
 
 // receive() implements reception of both, normal message as well as an acknowledgement!
 
@@ -133,6 +166,10 @@ void UDPSocket::receive_message() {
                 message_queue_lock.lock();
                 message_queue.erase(std::remove(message_queue.begin(), message_queue.end(), wrapped_message), message_queue.end());
                 message_queue_lock.unlock();
+
+                message_queue_2_lock.lock();
+                message_queue_2.erase(std::remove(message_queue_2.begin(), message_queue_2.end(), wrapped_message.content), message_queue_2.end());
+                message_queue_2_lock.unlock();
             } else {
                 //normal msg
                 if (std::find(received_messages.begin(), received_messages.end(), wrapped_message) != received_messages.end()) {

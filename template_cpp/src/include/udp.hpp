@@ -5,6 +5,7 @@
 #include <mutex>
 #include "parser.hpp"
 #include "message.hpp"
+#include "message_2.hpp"
 
 /*
 Idea is to create an infrastructure for a basic UDP socket that can send and receive messages.
@@ -33,12 +34,14 @@ class UDPSocket {
     private:
     // assignable:
         Parser::Host localhost;
+        Parser::Host destination;
         int sockfd; // socket file descriptor
         unsigned long msg_id;
+        unsigned long msg_id_2;
 
         std::vector<std::string> logs;
         std::vector<Msg> message_queue;
-        std::vector<unsigned long> message_queue_2;
+        std::vector<unsigned int> message_queue_2;
         std::mutex message_queue_2_lock;
         std::mutex message_queue_lock;
 
@@ -47,5 +50,6 @@ class UDPSocket {
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
 
         void send_message();
+        void send_message_2();
         void receive_message();
 };
