@@ -44,6 +44,7 @@ class UDPSocket {
         std::vector<std::string> logs;
         std::vector<unsigned int> message_queue_2;
         std::mutex message_queue_2_lock;
+        std::mutex logs_lock;
 
         std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
 
