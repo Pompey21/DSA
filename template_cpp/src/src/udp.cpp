@@ -30,20 +30,15 @@ Process reply and go back to step 2, if necessary.
 Close socket descriptor and exit.
 */
 
-
-
-UDPSocket::UDPSocket(Parser::Host localhost) {
+UDPSocket::UDPSocket(Parser::Host localhost, Parser parser) {
     this->localhost = localhost;
     sockfd = this->setup_socket(localhost);
-    msg_id = 0;
+    msg_id_2 = 0;
+    this->outputFile.open(parser.outputPath(), std::ofstream::out);;
 }
 
 // Creating two threads per socket, one for sending and one for receiving messages.
 void UDPSocket::create() {
-    // std::thread send_thread(&UDPSocket::send_message, this);
-    // std::thread receive_thread(&UDPSocket::receive_message, this);
-
-    // std::thread receive_thread_og(&UDPSocket::receive_message, this);
     std::thread receive_thread(&UDPSocket::receive_message_2, this);
     std::thread send_thread(&UDPSocket::send_message_2, this);
     
@@ -52,7 +47,6 @@ void UDPSocket::create() {
     sending 'this' pointer to both thread constructors will allow both constructors to
     operate on the same instance of UDPSocket object    
     */
-    // receive_thread_og.detach();
     send_thread.detach(); 
     receive_thread.detach(); 
 }
@@ -62,9 +56,9 @@ UDPSocket& UDPSocket::operator=(const UDPSocket & other) {
     this->logs = other.logs;
     this->localhost = other.localhost;
     this->sockfd = other.sockfd;
-    this->msg_id = other.msg_id;
-    this->message_queue = other.message_queue;
-    this->received_messages = other.received_messages;
+    this->msg_id_2 = other.msg_id_2;
+    this->message_queue_2 = other.message_queue_2;
+    this->received_messages_sender_set = other.received_messages_sender_set;
     return *this;
 }
 
@@ -77,24 +71,6 @@ struct sockaddr_in UDPSocket::set_up_destination_address(Parser::Host dest) {
     return destaddr;
 }
 
-void UDPSocket::enque(Parser::Host dest, unsigned int msg) {    
-    struct sockaddr_in destaddr = this->set_up_destination_address(dest);
-    struct Msg wrapedMsg = {
-        this->localhost,
-        dest,
-        msg_id,
-        msg,
-        false
-        };
-    msg_id++;
-    message_queue_lock.lock();
-    message_queue.push_back(wrapedMsg);
-    std::ostringstream oss;
-    oss << "b " << msg;
-    logs.push_back(oss.str());
-    message_queue_lock.unlock();
-}
-
 void UDPSocket::enque_2(Parser::Host dest, unsigned int msg) {
     struct sockaddr_in destaddr = this->set_up_destination_address(dest);
     destination = dest;
@@ -104,21 +80,6 @@ void UDPSocket::enque_2(Parser::Host dest, unsigned int msg) {
     oss << "b " << msg;
     logs.push_back(oss.str());
     message_queue_2_lock.unlock();
-}
-
-
-void UDPSocket::send_message() {
-    // Reference: https://stackoverflow.com/questions/5249418/warning-use-of-old-style-cast-in-g just try all of them until no error
-    bool infinite_loop = true;
-    while(infinite_loop) {
-        message_queue_lock.lock();
-        std::vector<Msg> copiedMsgQueue = message_queue;
-        message_queue_lock.unlock();
-        for (auto & wrapedMsg : copiedMsgQueue) {
-            struct sockaddr_in destaddr = this->set_up_destination_address(wrapedMsg.receiver);
-            sendto(this->sockfd, &wrapedMsg, sizeof(wrapedMsg), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
-        }
-    }
 }
 
 void UDPSocket::send_message_2() {
@@ -154,51 +115,6 @@ void UDPSocket::send_message_2() {
 
 
 // receive() implements reception of both, normal message as well as an acknowledgement!
-
-void UDPSocket::receive_message() {
-    
-    // Reference: https://stackoverflow.com/questions/18670807/sending-and-receiving-stdstring-over-socket
-    struct Msg wrapped_message; 
-    while (true) {
-        // std::cout << "I entered the receiver for loop!!";
-        // std::this_thread::sleep_for (std::chrono::seconds(1));
-
-        if (recv(this->sockfd, &wrapped_message, sizeof(wrapped_message), 0) < 0) {
-            throw std::runtime_error("Receive failed");
-        } 
-
-        else {
-            if (wrapped_message.is_ack) {
-                message_queue_lock.lock();
-                message_queue.erase(std::remove(message_queue.begin(), message_queue.end(), wrapped_message), message_queue.end());
-                message_queue_lock.unlock();
-
-            } else {
-                //normal msg
-                if (std::find(received_messages.begin(), received_messages.end(), wrapped_message) != received_messages.end()) {
-                    // if already receive
-                    // std::cout<< "Rejected " << wrapped_message.content << " from "<< wrapped_message.sender.id << "\n";
-                } else {
-                    //otherwise, save it
-                    received_messages.push_back(wrapped_message);
-                    std::ostringstream oss;
-                    oss << "d " << wrapped_message.sender.id << " " << wrapped_message.content;
-                    logs.push_back(oss.str());
-                    // std::cout<< "Received " << wrapped_message.content << " from "<< wrapped_message.sender.id << "\n";
-                }    
-                // send Ack back to sender
-                wrapped_message.is_ack = true;
-                struct sockaddr_in destaddr = this->set_up_destination_address(wrapped_message.sender);
-                Parser::Host tempAddr = wrapped_message.sender;
-                wrapped_message.sender = this->localhost;
-                wrapped_message.receiver = tempAddr;
-
-                sendto(this->sockfd, &wrapped_message, sizeof(wrapped_message), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
-            }  
-        }
-    }
-}
-
 void UDPSocket::receive_message_2() {
     struct Msg_Convoy message_convoy;
     while (true) {
@@ -226,7 +142,6 @@ void UDPSocket::receive_message_2() {
                 // if we haven't received it yet, then we need to save it
 
                 for (unsigned int i = 0; i < message_convoy.payload.size(); i++) {
-                    // auto it = received_messages_set.find(message_convoy.payload[i]);
                     auto it = received_messages_sender_set.find(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
 
                     if (it != received_messages_sender_set.end()) {
@@ -236,10 +151,17 @@ void UDPSocket::receive_message_2() {
                         oss << "d " << message_convoy.sender.id << " " << message_convoy.payload[i];
                         logs.push_back(oss.str());
                         std::cout << "Received " << message_convoy.payload[i] << " from " << message_convoy.sender.id << '\n';
-                        // received_messages_set.insert(message_convoy.payload[i]);
+
+
+                        // if (logs.size() > 5) {
+                        //     for (auto const &output: logs) {
+                        //         this->outputFile << output << std::endl;
+                        //     }
+                        //     std::cout << this->outputFile;
+                        //     logs.clear();
+                        // }
 
                         received_messages_sender_set.insert(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
-                        // std::cout << message_convoy.sender.id << 'n';
                     }
                 }
 

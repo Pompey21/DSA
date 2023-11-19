@@ -92,7 +92,9 @@ int main(int argc, char **argv) {
   config_file.close();
 
   // create a socket for that given process!
-  udpSocket = UDPSocket(hosts[parser.id()-1]);
+  const char* output_path = parser.outputPath();
+  std::string cppString(output_path);
+  udpSocket = UDPSocket(hosts[parser.id()-1], parser);
   // start the socket -> we create two threads, one for sending and one for receiving
 
   udpSocket.create();
