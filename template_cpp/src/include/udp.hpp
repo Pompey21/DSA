@@ -52,4 +52,7 @@ class UDPSocket {
         void send_message();
         void send_message_2();
         void receive_message();
+        void receive_message_2();
+
+        std::vector<unsigned int> message_convoy_parser(Msg_Convoy);
 };

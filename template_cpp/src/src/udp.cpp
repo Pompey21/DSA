@@ -145,6 +145,10 @@ void UDPSocket::send_message_2() {
             false
         };
         msg_id_2++;
+
+        // send message convoy
+        struct sockaddr_in destaddr = this->set_up_destination_address(this->destination);
+        sendto(this->sockfd, &msg_convoy, sizeof(msg_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
     }
 }
 
@@ -195,6 +199,28 @@ void UDPSocket::receive_message() {
         }
     }
 }
+
+void UDPSocket::receive_message_2() {
+    struct Msg_Convoy message_convoy;
+    while (true) {
+        if (recv(this->sockfd, &message_convoy, sizeof(message_convoy), 0) < 0) {
+            throw std::runtime_error("Receive failed");
+        } 
+
+        else {
+            if (message_convoy.is_ack) {
+                // need to parse the message
+            }
+
+            else {
+                // need to parse the message
+            }
+        }
+    }
+}
+
+
+
 
 int UDPSocket::setup_socket(Parser::Host host) {
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
