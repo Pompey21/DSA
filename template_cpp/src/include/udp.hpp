@@ -5,6 +5,9 @@
 #include <mutex>
 #include "parser.hpp"
 #include "message.hpp"
+#include "message_2.hpp"
+#include <set>
+#include <tuple>
 
 /*
 Idea is to create an infrastructure for a basic UDP socket that can send and receive messages.
@@ -19,29 +22,37 @@ They will all be implemented in the .cpp file, but will be declared here.
 
 class UDPSocket {
     public:
-        UDPSocket(){};
-        UDPSocket(const UDPSocket &);
-        UDPSocket(Parser::Host localhost);
+        // constructors
+        UDPSocket(){}; // defautl constructor
+        UDPSocket(const UDPSocket &); // copy constructor
+        UDPSocket(Parser::Host localhost, Parser parser); // constructor that takes a Parser::Host argument
 
         void create();
         void enque(Parser::Host dest, unsigned int msg);
+        void enque_2(Parser::Host dest, unsigned int msg);
         std::vector<std::string> get_logs();
         UDPSocket& operator=(const UDPSocket & other);
 
     private:
     // assignable:
         Parser::Host localhost;
+        Parser::Host destination;
+        std::ofstream outputFile;
         int sockfd; // socket file descriptor
-        unsigned long msg_id;
+        unsigned long msg_id_2;
 
         std::vector<std::string> logs;
-        std::vector<Msg> message_queue;
-        std::mutex message_queue_lock;
+        std::vector<unsigned int> message_queue_2;
+        std::mutex message_queue_2_lock;
+        std::mutex logs_lock;
 
-        std::vector<Msg> received_messages;
+        std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
+
         int setup_socket(Parser::Host host);
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
 
-        void send_message();
-        void receive_message();
+        void send_message_2();
+        void receive_message_2();
+
+        std::vector<unsigned int> message_convoy_parser(Msg_Convoy);
 };
