@@ -86,40 +86,29 @@ int main(int argc, char **argv) {
   std::cout << "Broadcasting and delivering messages...\n\n";
 
   
+  //do something
+  std::ifstream config_file(parser.configPath());
+  config_file >> m >> i;
+  config_file.close();
 
-  try {
-   //do something
-   std::ifstream config_file(parser.configPath());
-    config_file >> m >> i;
-    config_file.close();
+  // create a socket for that given process!
+  udpSocket = UDPSocket(hosts[parser.id()-1]);
+  // start the socket -> we create two threads, one for sending and one for receiving
 
-    // create a socket for that given process!
-    udpSocket = UDPSocket(hosts[parser.id()-1]);
-    // start the socket -> we create two threads, one for sending and one for receiving
+  udpSocket.create();
 
-    udpSocket.create();
-
-    std::cout << "After Socket Create \n";
-
-    // if this is not the receiving process, then it can broadcast the messages!
-    if (parser.id() != i) {
-      for (unsigned int message=1;message<=m;message ++) {
-        udpSocket.enque(hosts[i-1], message);      
-        udpSocket.enque_2(hosts[i-1], message);
-      }
+  // if this is not the receiving process, then it can broadcast the messages!
+  if (parser.id() != i) {
+    for (unsigned int message=1;message<=m;message ++) {
+      // udpSocket.enque(hosts[i-1], message);      
+      udpSocket.enque_2(hosts[i-1], message);
     }
+  }
 
-    std::cout << "After enquing \n";
-
-    // After a process finishes broadcasting,
-    // it waits forever for the delivery of messages.
-    while (true) {
-      std::cout << "Dela al ne dela \n";
-      std::this_thread::sleep_for(std::chrono::hours(1));
-      std::cout << "Dela al ne dela \n";
-    }
-  } catch (const std::exception& e) {
-      std::cout << e.what(); // information from error printed
+  // After a process finishes broadcasting,
+  // it waits forever for the delivery of messages.
+  while (true) {
+    std::this_thread::sleep_for(std::chrono::hours(1));
   }
 
   

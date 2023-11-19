@@ -6,6 +6,8 @@
 #include "parser.hpp"
 #include "message.hpp"
 #include "message_2.hpp"
+#include <set>
+#include <tuple>
 
 /*
 Idea is to create an infrastructure for a basic UDP socket that can send and receive messages.
@@ -46,7 +48,10 @@ class UDPSocket {
         std::mutex message_queue_lock;
 
         std::vector<Msg> received_messages;
-        std::vector<Msg_Convoy> received_messages_2;
+
+        std::set<unsigned int> received_messages_set;
+        std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
+
         int setup_socket(Parser::Host host);
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
 
