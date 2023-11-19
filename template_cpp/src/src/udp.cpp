@@ -40,8 +40,11 @@ UDPSocket::UDPSocket(Parser::Host localhost) {
 
 // Creating two threads per socket, one for sending and one for receiving messages.
 void UDPSocket::create() {
-    std::thread send_thread(&UDPSocket::send_message, this);
-    std::thread receive_thread(&UDPSocket::receive_message, this);
+    // std::thread send_thread(&UDPSocket::send_message, this);
+    // std::thread receive_thread(&UDPSocket::receive_message, this);
+
+    std::thread send_thread(&UDPSocket::send_message_2, this);
+    std::thread receive_thread(&UDPSocket::receive_message_2, this);
 
     /*
     sending 'this' pointer to both thread constructors will allow both constructors to
@@ -146,6 +149,12 @@ void UDPSocket::send_message_2() {
         };
         msg_id_2++;
 
+        std::cout << "Sending the message ... \n";
+        for (unsigned int i = 0; i<msg_convoy.payload.size(); i++) {
+            std::cout << "message: " << msg_convoy.payload[i] << "\n";
+        }
+
+
         // send message convoy
         struct sockaddr_in destaddr = this->set_up_destination_address(this->destination);
         sendto(this->sockfd, &msg_convoy, sizeof(msg_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
@@ -210,10 +219,43 @@ void UDPSocket::receive_message_2() {
         else {
             if (message_convoy.is_ack) {
                 // need to parse the message
+                // erase them from my message queue
+                message_queue_2_lock.lock();
+                std::vector<unsigned int> payload = message_convoy.payload;
+
+                // remove every message from the queue for which I received the ack
+                for(unsigned int i = 0; i < payload.size(); i++)
+                {
+                    message_queue_2.erase(std::remove(message_queue_2.begin(), message_queue_2.end(), payload[i]), message_queue_2.end());
+                }
+                message_queue_2_lock.unlock();
             }
 
             else {
-                // need to parse the message
+                // if we already received this message
+                if (std::find(received_messages_2.begin(), received_messages_2.end(), message_convoy) != received_messages_2.end() ) {
+                    // nothing
+                } else {
+                    // if we haven't received it yet, then we need to save it
+                    received_messages_2.push_back(message_convoy);
+                    std::ostringstream oss;
+
+                    for (unsigned int i = 0; i < message_convoy.payload.size(); i++) {
+                        oss << "d " << message_convoy.sender.id << " " << message_convoy.payload[i];
+                        logs.push_back(oss.str());
+                        std::cout << "Received " << message_convoy.payload[i] << " from " << message_convoy.sender.id << "\n";
+                    }
+
+                    // send the Ack back to sender
+                    message_convoy.is_ack = true;
+                    struct sockaddr_in destaddr = this->set_up_destination_address(message_convoy.sender);
+                    Parser::Host tempAddr = message_convoy.sender;
+                    message_convoy.sender = this->localhost;
+                    message_convoy.receiver = tempAddr;
+
+                    sendto(this->sockfd, &message_convoy, sizeof(message_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
+                    
+                }
             }
         }
     }

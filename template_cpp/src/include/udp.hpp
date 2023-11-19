@@ -46,6 +46,7 @@ class UDPSocket {
         std::mutex message_queue_lock;
 
         std::vector<Msg> received_messages;
+        std::vector<Msg_Convoy> received_messages_2;
         int setup_socket(Parser::Host host);
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
 
