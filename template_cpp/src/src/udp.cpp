@@ -43,14 +43,16 @@ void UDPSocket::create() {
     // std::thread send_thread(&UDPSocket::send_message, this);
     // std::thread receive_thread(&UDPSocket::receive_message, this);
 
-    std::thread send_thread(&UDPSocket::send_message_2, this);
+    // std::thread receive_thread_og(&UDPSocket::receive_message, this);
     std::thread receive_thread(&UDPSocket::receive_message_2, this);
+    std::thread send_thread(&UDPSocket::send_message_2, this);
+    
 
     /*
     sending 'this' pointer to both thread constructors will allow both constructors to
     operate on the same instance of UDPSocket object    
     */
-
+    // receive_thread_og.detach();
     send_thread.detach(); 
     receive_thread.detach(); 
 }
@@ -128,16 +130,12 @@ void UDPSocket::send_message_2() {
 
         // in my message I can at most send 8 integers as part of the payload
         // need to have a method to obtain the first 8 messages, of course, if they exist.
+        // std::array<unsigned int, 8> payload;
         std::vector<unsigned int> payload;
         auto curr_queue_size = message_queue_2.size();
-        if (curr_queue_size >= 8) {
-            for (int i = 0; i<8; i++) {
-                payload.push_back(message_queue_2[i]);
-            }
-        } else {
-            for (unsigned int i = 0; i<curr_queue_size; i++) {
-                payload.push_back(message_queue_2[i]);
-            }
+        
+        for (unsigned int i = 0; i<curr_queue_size; i++) {
+            payload[i] = message_queue_2[i];
         }
 
         struct Msg_Convoy msg_convoy = {
@@ -149,10 +147,10 @@ void UDPSocket::send_message_2() {
         };
         msg_id_2++;
 
-        std::cout << "Sending the message ... \n";
-        for (unsigned int i = 0; i<msg_convoy.payload.size(); i++) {
-            std::cout << "message: " << msg_convoy.payload[i] << "\n";
-        }
+        // std::cout << "Sending the message ... \n";
+        // for (unsigned int i = 0; i<msg_convoy.payload.size(); i++) {
+        //     std::cout << "message: " << msg_convoy.payload[i] << "\n";
+        // }
 
 
         // send message convoy
@@ -165,9 +163,11 @@ void UDPSocket::send_message_2() {
 // receive() implements reception of both, normal message as well as an acknowledgement!
 
 void UDPSocket::receive_message() {
+    
     // Reference: https://stackoverflow.com/questions/18670807/sending-and-receiving-stdstring-over-socket
     struct Msg wrapped_message; 
     while (true) {
+        // std::cout << "I entered the receiver for loop!!";
         // std::this_thread::sleep_for (std::chrono::seconds(1));
 
         if (recv(this->sockfd, &wrapped_message, sizeof(wrapped_message), 0) < 0) {
@@ -180,9 +180,6 @@ void UDPSocket::receive_message() {
                 message_queue.erase(std::remove(message_queue.begin(), message_queue.end(), wrapped_message), message_queue.end());
                 message_queue_lock.unlock();
 
-                message_queue_2_lock.lock();
-                message_queue_2.erase(std::remove(message_queue_2.begin(), message_queue_2.end(), wrapped_message.content), message_queue_2.end());
-                message_queue_2_lock.unlock();
             } else {
                 //normal msg
                 if (std::find(received_messages.begin(), received_messages.end(), wrapped_message) != received_messages.end()) {
@@ -210,8 +207,10 @@ void UDPSocket::receive_message() {
 }
 
 void UDPSocket::receive_message_2() {
+    std::cout << "At least this might work..";
     struct Msg_Convoy message_convoy;
     while (true) {
+        std::cout << "I entered the receiver for loop!!";
         if (recv(this->sockfd, &message_convoy, sizeof(message_convoy), 0) < 0) {
             throw std::runtime_error("Receive failed");
         } 
@@ -221,6 +220,7 @@ void UDPSocket::receive_message_2() {
                 // need to parse the message
                 // erase them from my message queue
                 message_queue_2_lock.lock();
+                // std::array<unsigned int, 8> payload = message_convoy.payload;
                 std::vector<unsigned int> payload = message_convoy.payload;
 
                 // remove every message from the queue for which I received the ack

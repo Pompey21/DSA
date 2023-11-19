@@ -4,6 +4,7 @@ struct Msg_Convoy {
     Parser::Host sender;
     Parser::Host receiver;
     unsigned long msg_id;
+    // std::array<unsigned int, 8> payload;
     std::vector<unsigned int> payload;
     bool is_ack;
     public:
