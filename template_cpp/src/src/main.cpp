@@ -89,7 +89,8 @@ int main(int argc, char **argv) {
   
   //do something
   std::ifstream config_file(parser.configPath());
-  config_file >> m >> i;
+  // config_file >> m >> i; // this is for perfect links
+  config_file >> m;
   config_file.close();
 
   // create a socket for that given process!
@@ -110,14 +111,14 @@ int main(int argc, char **argv) {
 
   // for beb we want every process to send messages to every other process
 
-  for (unsigned int host=0; host<hosts.size(); host++) {
+  for (unsigned int host=0; host<hosts.size()-1; host++) {
     if (parser.id() != hosts[host].id) {
       for (unsigned int message=1; message <= m; message++) {
         udpSocket.enque_2(hosts[host], message);
-        std::cout << "this is for receiver " << hosts[host].id << std::endl;
-        std::cout << "from sender " << parser.id() << std::endl;
-        std::cout << "message: " << message << std::endl;
-        std::cout << "----------" << std::endl;
+        // std::cout << "this is for receiver " << hosts[host].id << std::endl;
+        // std::cout << "from sender " << parser.id() << std::endl;
+        // std::cout << "message: " << message << std::endl;
+        // std::cout << "----------" << std::endl;
       }
     }
   }

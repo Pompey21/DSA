@@ -92,11 +92,13 @@ void UDPSocket::send_message_2() {
         // in my message I can at most send 8 integers as part of the payload
         // need to have a method to obtain the first 8 messages, of course, if they exist.
         std::array<unsigned int, 8> payload;
-        auto curr_queue_size = message_queue_2.size();
         
-        for (unsigned int i = 0; i<curr_queue_size; i++) {
+        for (unsigned int i = 0; i<message_queue_2.size(); i++) {
             payload[i] = message_queue_2[i];
+            std::cout << "---- payload ----" << std::endl;
+            std::cout << "this is the int that is being sent: " << payload[i] << std::endl;
         }
+
 
         struct Msg_Convoy msg_convoy = {
             this->localhost,
@@ -110,6 +112,9 @@ void UDPSocket::send_message_2() {
         // send message convoy
         struct sockaddr_in destaddr = this->set_up_destination_address(this->destination);
         sendto(this->sockfd, &msg_convoy, sizeof(msg_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
+        std::cout << "Sending a message...." << std::endl;
+        std::cout << "To: " << msg_convoy.receiver.id << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(4));
     }
 }
 
@@ -123,6 +128,7 @@ void UDPSocket::receive_message_2() {
         } 
 
         else {
+            
             if (message_convoy.is_ack) {
                 // need to parse the message
                 // erase them from my message queue
@@ -141,28 +147,34 @@ void UDPSocket::receive_message_2() {
             else {
                 // if we haven't received it yet, then we need to save it
 
+                std::cout << "Receiving a message..." << std::endl;
+                std::cout << "From: " << message_convoy.sender.id << std::endl;
+                std::cout << "Payload size " << message_convoy.payload.size() << std::endl;
+
                 for (unsigned int i = 0; i < message_convoy.payload.size(); i++) {
                     auto it = received_messages_sender_set.find(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
 
-                    if (it != received_messages_sender_set.end()) {
+                    if (it != received_messages_sender_set.end() || message_convoy.payload[i] == 0) {
                         
                     } else {
                         std::ostringstream oss;
                         oss << "d " << message_convoy.sender.id << " " << message_convoy.payload[i];
                         logs.push_back(oss.str());
                         std::cout << "Received " << message_convoy.payload[i] << " from " << message_convoy.sender.id << '\n';
+                        std::cout << "Index i " << i << std::endl;
+                        // std::cout << "Type of this bloody variable : " << typeid(message_convoy.payload[i]).name() << std::endl;
 
 
-                        if (logs.size() > 5) {
-                            for (auto const &output: logs) {
-                                // this->outputFile << output << std::endl;
-                                std::cout << "Hllo Rares: " << output << std::endl;
-                            }
-                            // std::cout << this->outputFile;
+                        // if (logs.size() > 5) {
+                        //     for (auto const &output: logs) {
+                        //         // this->outputFile << output << std::endl;
+                        //         std::cout << "Hllo Rares: " << output << std::endl;
+                        //     }
+                        //     // std::cout << this->outputFile;
                             
-                            // this->outputFile.flush();
-                            // logs.clear();
-                        }
+                        //     // this->outputFile.flush();
+                        //     // logs.clear();
+                        // }
 
                         received_messages_sender_set.insert(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
                     }
