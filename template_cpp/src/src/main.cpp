@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
   // create a socket for that given process!
   const char* output_path = parser.outputPath();
   std::string cppString(output_path);
-  udpSocket = UDPSocket(hosts[parser.id()-1], parser, hosts.size());
+  udpSocket = UDPSocket(hosts[parser.id()-1], parser);
   // start the socket -> we create two threads, one for sending and one for receiving
 
   udpSocket.create();
@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
     if (parser.id() != hosts[host].id) {
       for (unsigned int message=1; message <= m; message++) {
         udpSocket.enque_2(hosts[host], message);
-        // std::cout << "this is for receiver " << hosts[host].id << std::endl;
+        std::cout << "this is for receiver " << hosts[host].id << std::endl;
         // std::cout << "from sender " << parser.id() << std::endl;
         // std::cout << "message: " << message << std::endl;
         // std::cout << "----------" << std::endl;

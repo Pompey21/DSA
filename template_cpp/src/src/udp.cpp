@@ -30,11 +30,19 @@ Process reply and go back to step 2, if necessary.
 Close socket descriptor and exit.
 */
 
-UDPSocket::UDPSocket(Parser::Host localhost, Parser parser, unsigned int num_hosts) {
+UDPSocket::UDPSocket(Parser::Host localhost, Parser parser) {
     this->localhost = localhost;
     sockfd = this->setup_socket(localhost);
     msg_id_2 = 0;
+    
+    // not sure this open file actually works
     this->outputFile.open(parser.outputPath(), std::ofstream::out);
+
+    // need to initiate destinations_2 & destinations
+    for (auto host : parser.hosts()) {
+        destiantions_2[host.id] = host;
+        destinations.push_back(host);
+    }
 }
 
 // Creating two threads per socket, one for sending and one for receiving messages.
@@ -73,7 +81,9 @@ struct sockaddr_in UDPSocket::set_up_destination_address(Parser::Host dest) {
 
 void UDPSocket::enque_2(Parser::Host dest, unsigned int msg) {
     struct sockaddr_in destaddr = this->set_up_destination_address(dest);
-    destination = dest;
+
+    // std::cout << "This is the passed destination address: " << destaddr << std::endl;
+
     message_queue_2_lock.lock();
     message_queue_2.push_back(msg);
 
@@ -87,6 +97,31 @@ void UDPSocket::enque_2(Parser::Host dest, unsigned int msg) {
     logs_lock.unlock();
     
     message_queue_2_lock.unlock();
+}
+
+void UDPSocket::enque(Parser::Host dest, unsigned int msg) {
+    message_queue_2_lock.lock();
+    // check if there has already been an array inserted
+    if (message_queue.find(dest.id) != message_queue.end()) {
+        // YES -> append msg
+        message_queue[dest.id].push_back(msg);
+
+    } else {
+        // NO -> insert vector with msg 
+        std::vector<unsigned int>{msg};
+    }
+
+    std::string msg_prep = "b " + std::to_string(msg);
+    std::cout << "This is the message prep: " << msg_prep << std::endl;
+    logs_lock.lock();
+    auto it = logs_set.find(msg_prep);
+    if (it == logs_set.end()) {
+        logs_set.insert(msg_prep);
+    }
+    logs_lock.unlock();
+
+    message_queue_2_lock.unlock();
+
 
 }
 
