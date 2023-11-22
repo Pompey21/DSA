@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
   // create a socket for that given process!
   const char* output_path = parser.outputPath();
   std::string cppString(output_path);
-  udpSocket = UDPSocket(hosts[parser.id()-1], parser);
+  udpSocket = UDPSocket(hosts[parser.id()-1], parser, hosts.size());
   // start the socket -> we create two threads, one for sending and one for receiving
 
   udpSocket.create();
@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
 
   // for beb we want every process to send messages to every other process
 
-  for (unsigned int host=0; host<hosts.size()-1; host++) {
+  for (unsigned int host=0; host<hosts.size(); host++) {
     if (parser.id() != hosts[host].id) {
       for (unsigned int message=1; message <= m; message++) {
         udpSocket.enque_2(hosts[host], message);

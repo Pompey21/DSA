@@ -25,7 +25,7 @@ class UDPSocket {
         // constructors
         UDPSocket(){}; // defautl constructor
         UDPSocket(const UDPSocket &); // copy constructor
-        UDPSocket(Parser::Host localhost, Parser parser); // constructor that takes a Parser::Host argument
+        UDPSocket(Parser::Host localhost, Parser parser, unsigned int num_hosts); // constructor that takes a Parser::Host argument
 
         void create();
         void enque(Parser::Host dest, unsigned int msg);
@@ -42,11 +42,13 @@ class UDPSocket {
         int sockfd; // socket file descriptor
         unsigned long msg_id_2;
 
-        // std::vector<std::string> logs;
         std::set<std::string> logs_set;
         std::vector<unsigned int> message_queue_2;
         std::mutex message_queue_2_lock;
         std::mutex logs_lock;
+
+        unsigned int num_hosts;
+        std::vector<std::set<std::string>> message_queue_dynamic;
 
         std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
 
@@ -55,6 +57,8 @@ class UDPSocket {
 
         void send_message_2();
         void receive_message_2();
+
+
 
         std::vector<unsigned int> message_convoy_parser(Msg_Convoy);
 };

@@ -30,7 +30,7 @@ Process reply and go back to step 2, if necessary.
 Close socket descriptor and exit.
 */
 
-UDPSocket::UDPSocket(Parser::Host localhost, Parser parser) {
+UDPSocket::UDPSocket(Parser::Host localhost, Parser parser, unsigned int num_hosts) {
     this->localhost = localhost;
     sockfd = this->setup_socket(localhost);
     msg_id_2 = 0;
@@ -87,6 +87,7 @@ void UDPSocket::enque_2(Parser::Host dest, unsigned int msg) {
     logs_lock.unlock();
     
     message_queue_2_lock.unlock();
+
 }
 
 void UDPSocket::send_message_2() {
@@ -101,10 +102,9 @@ void UDPSocket::send_message_2() {
             // need to have a method to obtain the first 8 messages, of course, if they exist.
             std::array<unsigned int, 8> payload;
             
-            for (unsigned int i = 0; i<message_queue_2.size(); i++) {
+            for (unsigned int i = 0; i<8; i++) {
                 payload[i] = message_queue_2[i];
             }
-
 
             struct Msg_Convoy msg_convoy = {
                 this->localhost,
@@ -118,7 +118,7 @@ void UDPSocket::send_message_2() {
             // send message convoy
             struct sockaddr_in destaddr = this->set_up_destination_address(this->destination);
             sendto(this->sockfd, &msg_convoy, sizeof(msg_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
-            std::this_thread::sleep_for(std::chrono::seconds(4));
+            // std::this_thread::sleep_for(std::chrono::seconds(4));
         }
         
     }
