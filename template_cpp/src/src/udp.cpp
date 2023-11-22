@@ -34,7 +34,7 @@ UDPSocket::UDPSocket(Parser::Host localhost, Parser parser) {
     this->localhost = localhost;
     sockfd = this->setup_socket(localhost);
     msg_id_2 = 0;
-    this->outputFile.open(parser.outputPath(), std::ofstream::out);;
+    this->outputFile.open(parser.outputPath(), std::ofstream::out);
 }
 
 // Creating two threads per socket, one for sending and one for receiving messages.
@@ -153,13 +153,16 @@ void UDPSocket::receive_message_2() {
                         std::cout << "Received " << message_convoy.payload[i] << " from " << message_convoy.sender.id << '\n';
 
 
-                        // if (logs.size() > 5) {
-                        //     for (auto const &output: logs) {
-                        //         this->outputFile << output << std::endl;
-                        //     }
-                        //     std::cout << this->outputFile;
-                        //     logs.clear();
-                        // }
+                        if (logs.size() > 5) {
+                            for (auto const &output: logs) {
+                                // this->outputFile << output << std::endl;
+                                std::cout << "Hllo Rares: " << output << std::endl;
+                            }
+                            // std::cout << this->outputFile;
+                            
+                            // this->outputFile.flush();
+                            // logs.clear();
+                        }
 
                         received_messages_sender_set.insert(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
                     }

@@ -24,6 +24,7 @@ static void stop(int) {
   for(auto const &output: udpSocket.get_logs()){
     outputFile << output << std::endl;
   }
+  outputFile.flush();
   outputFile.close();
 
   // exit directly from signal handler
@@ -100,12 +101,30 @@ int main(int argc, char **argv) {
   udpSocket.create();
 
   // if this is not the receiving process, then it can broadcast the messages!
-  if (parser.id() != i) {
-    for (unsigned int message=1;message<=m;message ++) {
-      // udpSocket.enque(hosts[i-1], message);      
-      udpSocket.enque_2(hosts[i-1], message);
+  // if (parser.id() != i) {
+  //   for (unsigned int message=1;message<=m;message ++) {
+  //     // udpSocket.enque(hosts[i-1], message);      
+  //     udpSocket.enque_2(hosts[i-1], message);
+  //   }
+  // }
+
+  // for beb we want every process to send messages to every other process
+
+  for (unsigned int host=0; host<hosts.size(); host++) {
+    if (parser.id() != hosts[host].id) {
+      for (unsigned int message=1; message <= m; message++) {
+        udpSocket.enque_2(hosts[host], message);
+        std::cout << "this is for receiver " << hosts[host].id << std::endl;
+        std::cout << "from sender " << parser.id() << std::endl;
+        std::cout << "message: " << message << std::endl;
+        std::cout << "----------" << std::endl;
+      }
     }
   }
+  // for (unsigned int host=1; host<=hosts)
+  // for (unsigned int message=1; message<=m; message++) {
+    
+  // }
 
   // After a process finishes broadcasting,
   // it waits forever for the delivery of messages.
