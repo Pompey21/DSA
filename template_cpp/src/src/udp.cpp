@@ -53,12 +53,12 @@ void UDPSocket::create() {
 
 // Setting private parameters of the UDPSocket class.
 UDPSocket& UDPSocket::operator=(const UDPSocket & other) {
-    this->logs = other.logs;
     this->localhost = other.localhost;
     this->sockfd = other.sockfd;
     this->msg_id_2 = other.msg_id_2;
     this->message_queue_2 = other.message_queue_2;
     this->received_messages_sender_set = other.received_messages_sender_set;
+    this->logs_set = other.logs_set;
     return *this;
 }
 
@@ -76,45 +76,51 @@ void UDPSocket::enque_2(Parser::Host dest, unsigned int msg) {
     destination = dest;
     message_queue_2_lock.lock();
     message_queue_2.push_back(msg);
-    std::ostringstream oss;
-    oss << "b " << msg;
-    logs.push_back(oss.str());
+
+    std::string msg_prep = "b " + std::to_string(msg);
+    std::cout << "This is the message prep: " << msg_prep << std::endl;
+    logs_lock.lock();
+    auto it = logs_set.find(msg_prep);
+    if (it == logs_set.end()) {
+        logs_set.insert(msg_prep);
+    }
+    logs_lock.unlock();
+    
     message_queue_2_lock.unlock();
 }
 
 void UDPSocket::send_message_2() {
     bool infinite_loop = true;
     while (infinite_loop) {
-        message_queue_2_lock.lock();
-        std::vector<unsigned int> copied_message_queue = message_queue_2;
-        message_queue_2_lock.unlock();
+        if (message_queue_2.size() > 0) {
+            message_queue_2_lock.lock();
+            std::vector<unsigned int> copied_message_queue = message_queue_2;
+            message_queue_2_lock.unlock();
 
-        // in my message I can at most send 8 integers as part of the payload
-        // need to have a method to obtain the first 8 messages, of course, if they exist.
-        std::array<unsigned int, 8> payload;
-        
-        for (unsigned int i = 0; i<message_queue_2.size(); i++) {
-            payload[i] = message_queue_2[i];
-            std::cout << "---- payload ----" << std::endl;
-            std::cout << "this is the int that is being sent: " << payload[i] << std::endl;
+            // in my message I can at most send 8 integers as part of the payload
+            // need to have a method to obtain the first 8 messages, of course, if they exist.
+            std::array<unsigned int, 8> payload;
+            
+            for (unsigned int i = 0; i<message_queue_2.size(); i++) {
+                payload[i] = message_queue_2[i];
+            }
+
+
+            struct Msg_Convoy msg_convoy = {
+                this->localhost,
+                this->destination,
+                msg_id_2,
+                payload,
+                false
+            };
+            msg_id_2++;
+
+            // send message convoy
+            struct sockaddr_in destaddr = this->set_up_destination_address(this->destination);
+            sendto(this->sockfd, &msg_convoy, sizeof(msg_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
+            std::this_thread::sleep_for(std::chrono::seconds(4));
         }
-
-
-        struct Msg_Convoy msg_convoy = {
-            this->localhost,
-            this->destination,
-            msg_id_2,
-            payload,
-            false
-        };
-        msg_id_2++;
-
-        // send message convoy
-        struct sockaddr_in destaddr = this->set_up_destination_address(this->destination);
-        sendto(this->sockfd, &msg_convoy, sizeof(msg_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
-        std::cout << "Sending a message...." << std::endl;
-        std::cout << "To: " << msg_convoy.receiver.id << std::endl;
-        std::this_thread::sleep_for(std::chrono::seconds(4));
+        
     }
 }
 
@@ -147,10 +153,6 @@ void UDPSocket::receive_message_2() {
             else {
                 // if we haven't received it yet, then we need to save it
 
-                std::cout << "Receiving a message..." << std::endl;
-                std::cout << "From: " << message_convoy.sender.id << std::endl;
-                std::cout << "Payload size " << message_convoy.payload.size() << std::endl;
-
                 for (unsigned int i = 0; i < message_convoy.payload.size(); i++) {
                     auto it = received_messages_sender_set.find(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
 
@@ -159,11 +161,16 @@ void UDPSocket::receive_message_2() {
                     } else {
                         std::ostringstream oss;
                         oss << "d " << message_convoy.sender.id << " " << message_convoy.payload[i];
-                        logs.push_back(oss.str());
-                        std::cout << "Received " << message_convoy.payload[i] << " from " << message_convoy.sender.id << '\n';
-                        std::cout << "Index i " << i << std::endl;
-                        // std::cout << "Type of this bloody variable : " << typeid(message_convoy.payload[i]).name() << std::endl;
 
+                        logs_lock.lock();
+                        std::string msg_prep = "d " + std::to_string(message_convoy.sender.id) + " " + std::to_string(message_convoy.payload[i]);
+                        std::cout << "This is the message: " << msg_prep << std::endl;
+                        auto it = logs_set.find(msg_prep);
+                        if (it == logs_set.end()) {
+                            logs_set.insert(msg_prep);
+                        }
+                        // logs_set.insert(msg_prep);
+                        logs_lock.unlock();
 
                         // if (logs.size() > 5) {
                         //     for (auto const &output: logs) {
@@ -214,7 +221,12 @@ int UDPSocket::setup_socket(Parser::Host host) {
     return sockfd;
 }
 
-std::vector<std::string> UDPSocket::get_logs() {
+std::vector<std::string> UDPSocket::get_logs_2() {
+    std::vector<std::string> res;
+    for (auto elem : this->logs_set) {
+        res.push_back(elem);
+    }
 
-    return this->logs;
+    return res;
 }
+

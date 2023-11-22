@@ -30,7 +30,8 @@ class UDPSocket {
         void create();
         void enque(Parser::Host dest, unsigned int msg);
         void enque_2(Parser::Host dest, unsigned int msg);
-        std::vector<std::string> get_logs();
+        // std::vector<std::string> get_logs();
+        std::vector<std::string> get_logs_2();
         UDPSocket& operator=(const UDPSocket & other);
 
     private:
@@ -41,7 +42,8 @@ class UDPSocket {
         int sockfd; // socket file descriptor
         unsigned long msg_id_2;
 
-        std::vector<std::string> logs;
+        // std::vector<std::string> logs;
+        std::set<std::string> logs_set;
         std::vector<unsigned int> message_queue_2;
         std::mutex message_queue_2_lock;
         std::mutex logs_lock;
