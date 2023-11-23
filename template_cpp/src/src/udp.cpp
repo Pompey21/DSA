@@ -48,14 +48,14 @@ UDPSocket::UDPSocket(Parser::Host localhost, Parser parser) {
 // Creating two threads per socket, one for sending and one for receiving messages.
 void UDPSocket::create() {
     std::thread receive_thread(&UDPSocket::receive_message_2, this);
-    std::thread send_thread(&UDPSocket::send_message_2, this);
+    // std::thread send_thread(&UDPSocket::send_message_2, this);
     
 
     /*
     sending 'this' pointer to both thread constructors will allow both constructors to
     operate on the same instance of UDPSocket object    
     */
-    send_thread.detach(); 
+    // send_thread.detach(); 
     receive_thread.detach(); 
 }
 
@@ -105,10 +105,9 @@ void UDPSocket::enque(Parser::Host dest, unsigned int msg) {
     if (message_queue.find(dest.id) != message_queue.end()) {
         // YES -> append msg
         message_queue[dest.id].push_back(msg);
-
     } else {
         // NO -> insert vector with msg 
-        std::vector<unsigned int>{msg};
+        message_queue[dest.id].assign({msg});
     }
 
     std::string msg_prep = "b " + std::to_string(msg);
@@ -122,7 +121,12 @@ void UDPSocket::enque(Parser::Host dest, unsigned int msg) {
 
     message_queue_2_lock.unlock();
 
-
+    // for (const auto& pair : message_queue) {
+    //     unsigned long key = pair.first;
+    //     std::vector<unsigned int> value = pair.second;
+    //     std::cout << "Key: " << key << std::endl;
+    //     std::cout << "Length of vector is: " << value.size() << std::endl;
+    // }
 }
 
 void UDPSocket::send_message_2() {

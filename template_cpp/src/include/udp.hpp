@@ -38,6 +38,7 @@ class UDPSocket {
     private:
     // assignable:
         Parser::Host localhost;
+        Parser::Host destination;
 
         std::vector<Parser::Host> destinations;
         std::unordered_map<unsigned long, Parser::Host> destiantions_2;

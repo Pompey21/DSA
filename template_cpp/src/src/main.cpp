@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
   for (unsigned int host=0; host<hosts.size(); host++) {
     if (parser.id() != hosts[host].id) {
       for (unsigned int message=1; message <= m; message++) {
-        udpSocket.enque_2(hosts[host], message);
+        udpSocket.enque(hosts[host], message);
         std::cout << "this is for receiver " << hosts[host].id << std::endl;
         // std::cout << "from sender " << parser.id() << std::endl;
         // std::cout << "message: " << message << std::endl;
