@@ -83,16 +83,6 @@ void UDPSocket::enque_2(Parser::Host dest, unsigned int msg) {
 
     this->destination = dest;
 
-    // std::cout << "Size of my destinations_2: " << this->destiantions_2.size() << std::endl;
-    // std::cout << "Port of my local host is: " << this->localhost.port << std::endl;
-
-    // for (const auto& [key, value] : destiantions_2) {
-    //     // std::cout << "Key: " << key << std::endl;
-    //     if (value.id == dest.id) {
-    //         std::cout << "Okey this is what we like" << std::endl;
-    //     }
-    // }
-
     message_queue_2_lock.lock();
     message_queue_2.push_back(msg);
 
@@ -172,19 +162,28 @@ void UDPSocket::send_message() {
     while (infinite_loop) {
 
         for (const auto& [key, value] : message_queue) {
-            // std::cout << "Key: " << key << std::endl;
+            std::cout << "Key: " << key << std::endl;
 
-            if (message_queue[key].size() > 0) {
+            if (value.size() > 0) {
                 message_queue_2_lock.lock();
-                std::vector<unsigned int> copied_message_queue = message_queue[key];
+                std::vector<unsigned int> copied_message_queue = value;
                 message_queue_2_lock.unlock();
+                
+                std::cout << "This is the message queue size : " << value.size() << std::endl;
 
-                std::cout << "This is the message queue size : " << message_queue.size() << std::endl;
+                // iteration maximum
+                unsigned long iteration_maximum;
+                if (value.size() > 8) {
+                    iteration_maximum = 8;
+                } else {
+                    iteration_maximum = value.size();
+                }
 
                 // in my message I can at most send 8 integers as part of the payload
                 // need to have a method to obtain the first 8 messages, of course, if they exist.
                 std::array<unsigned int, 8> payload;
-                for (unsigned int i=0; i<8; i++) {
+                for (unsigned int i=0; i<iteration_maximum; i++) {
+                    // std::cout << "this is the value at index " << i << " " << copied_message_queue[i] << std::endl;
                     payload[i] = copied_message_queue[i];
                 }
 
@@ -244,7 +243,7 @@ void UDPSocket::receive_message_2() {
                 // if we haven't received it yet, then we need to save it
 
                 for (unsigned int i = 0; i < message_convoy.payload.size(); i++) {
-                    std::cout << message_convoy.payload[i] << std::endl;
+                    // std::cout << message_convoy.payload[i] << std::endl;
                     auto it = received_messages_sender_set.find(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
                     if (it != received_messages_sender_set.end() || message_convoy.payload[i] == 0) {
                         
