@@ -34,28 +34,28 @@ UDPSocket::UDPSocket(Parser::Host localhost, Parser parser) {
     this->localhost = localhost;
     sockfd = this->setup_socket(localhost);
     msg_id_2 = 0;
-    
-    // not sure this open file actually works
-    this->outputFile.open(parser.outputPath(), std::ofstream::out);
 
     // need to initiate destinations_2 & destinations
     for (auto host : parser.hosts()) {
-        destiantions_2[host.id] = host;
-        destinations.push_back(host);
+        Parser::Host host_og = host;
+        this->destiantions_2[host.id] = host;
+        std::cout << "This is the host ID: " << destiantions_2[host.id].id << std::endl;
+        std::cout << "This is the host IP: " << destiantions_2[host.id].ip << std::endl;
     }
+    std::cout << "\nSize of my destinations_2: " << destiantions_2.size() << std::endl;
 }
 
 // Creating two threads per socket, one for sending and one for receiving messages.
 void UDPSocket::create() {
     std::thread receive_thread(&UDPSocket::receive_message_2, this);
     // std::thread send_thread(&UDPSocket::send_message_2, this);
+    std::thread send_thread(&UDPSocket::send_message, this);
     
-
     /*
     sending 'this' pointer to both thread constructors will allow both constructors to
     operate on the same instance of UDPSocket object    
     */
-    // send_thread.detach(); 
+    send_thread.detach(); 
     receive_thread.detach(); 
 }
 
@@ -80,15 +80,24 @@ struct sockaddr_in UDPSocket::set_up_destination_address(Parser::Host dest) {
 }
 
 void UDPSocket::enque_2(Parser::Host dest, unsigned int msg) {
-    struct sockaddr_in destaddr = this->set_up_destination_address(dest);
 
-    // std::cout << "This is the passed destination address: " << destaddr << std::endl;
+    this->destination = dest;
+
+    // std::cout << "Size of my destinations_2: " << this->destiantions_2.size() << std::endl;
+    // std::cout << "Port of my local host is: " << this->localhost.port << std::endl;
+
+    // for (const auto& [key, value] : destiantions_2) {
+    //     // std::cout << "Key: " << key << std::endl;
+    //     if (value.id == dest.id) {
+    //         std::cout << "Okey this is what we like" << std::endl;
+    //     }
+    // }
 
     message_queue_2_lock.lock();
     message_queue_2.push_back(msg);
 
     std::string msg_prep = "b " + std::to_string(msg);
-    std::cout << "This is the message prep: " << msg_prep << std::endl;
+    // std::cout << "This is the message prep: " << msg_prep << std::endl;
     logs_lock.lock();
     auto it = logs_set.find(msg_prep);
     if (it == logs_set.end()) {
@@ -100,6 +109,9 @@ void UDPSocket::enque_2(Parser::Host dest, unsigned int msg) {
 }
 
 void UDPSocket::enque(Parser::Host dest, unsigned int msg) {
+
+    // std::cout << "Size of my destinations_2: " << this->destiantions_2.size() << std::endl;
+
     message_queue_2_lock.lock();
     // check if there has already been an array inserted
     if (message_queue.find(dest.id) != message_queue.end()) {
@@ -109,24 +121,16 @@ void UDPSocket::enque(Parser::Host dest, unsigned int msg) {
         // NO -> insert vector with msg 
         message_queue[dest.id].assign({msg});
     }
+    message_queue_2_lock.unlock();
 
     std::string msg_prep = "b " + std::to_string(msg);
-    std::cout << "This is the message prep: " << msg_prep << std::endl;
+    // std::cout << "This is the message prep: " << msg_prep << std::endl;
     logs_lock.lock();
     auto it = logs_set.find(msg_prep);
     if (it == logs_set.end()) {
         logs_set.insert(msg_prep);
     }
     logs_lock.unlock();
-
-    message_queue_2_lock.unlock();
-
-    // for (const auto& pair : message_queue) {
-    //     unsigned long key = pair.first;
-    //     std::vector<unsigned int> value = pair.second;
-    //     std::cout << "Key: " << key << std::endl;
-    //     std::cout << "Length of vector is: " << value.size() << std::endl;
-    // }
 }
 
 void UDPSocket::send_message_2() {
@@ -142,7 +146,7 @@ void UDPSocket::send_message_2() {
             std::array<unsigned int, 8> payload;
             
             for (unsigned int i = 0; i<8; i++) {
-                payload[i] = message_queue_2[i];
+                payload[i] = copied_message_queue[i];
             }
 
             struct Msg_Convoy msg_convoy = {
@@ -155,11 +159,56 @@ void UDPSocket::send_message_2() {
             msg_id_2++;
 
             // send message convoy
-            struct sockaddr_in destaddr = this->set_up_destination_address(this->destination);
+            struct sockaddr_in destaddr = this->set_up_destination_address(msg_convoy.receiver);
             sendto(this->sockfd, &msg_convoy, sizeof(msg_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
             // std::this_thread::sleep_for(std::chrono::seconds(4));
         }
         
+    }
+}
+
+void UDPSocket::send_message() {
+    bool infinite_loop = true;
+    while (infinite_loop) {
+
+        for (const auto& [key, value] : message_queue) {
+            // std::cout << "Key: " << key << std::endl;
+
+            if (message_queue[key].size() > 0) {
+                message_queue_2_lock.lock();
+                std::vector<unsigned int> copied_message_queue = message_queue[key];
+                message_queue_2_lock.unlock();
+
+                std::cout << "This is the message queue size : " << message_queue.size() << std::endl;
+
+                // in my message I can at most send 8 integers as part of the payload
+                // need to have a method to obtain the first 8 messages, of course, if they exist.
+                std::array<unsigned int, 8> payload;
+                for (unsigned int i=0; i<8; i++) {
+                    payload[i] = copied_message_queue[i];
+                }
+
+                struct Msg_Convoy msg_convoy = {
+                    this->localhost,
+                    // this->destination, // this I now need to change
+                    this->destiantions_2[key],
+                    this->msg_id_2,
+                    payload,
+                    false
+                };
+                msg_id_2++;
+
+                // send message convoy
+                // struct sockaddr_in destaddr = this->set_up_destination_address(this->destiantions_2[key]);
+                struct sockaddr_in destaddr = this->set_up_destination_address(msg_convoy.receiver);
+                sendto(this->sockfd, &msg_convoy, sizeof(msg_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
+
+                std::cout << "Sending message ... " << std::endl;
+                // std::cout << "Destination address: " << destaddr.sin_addr.s_addr << std::endl;
+                std::cout << "Destination ID: " << this->destiantions_2[key].id << std::endl;
+                std::this_thread::sleep_for(std::chrono::seconds(4));
+            }
+        }
     }
 }
 
@@ -173,6 +222,8 @@ void UDPSocket::receive_message_2() {
         } 
 
         else {
+
+            // std::cout << "At least we receive something!" << std::endl;
             
             if (message_convoy.is_ack) {
                 // need to parse the message
@@ -193,8 +244,8 @@ void UDPSocket::receive_message_2() {
                 // if we haven't received it yet, then we need to save it
 
                 for (unsigned int i = 0; i < message_convoy.payload.size(); i++) {
+                    std::cout << message_convoy.payload[i] << std::endl;
                     auto it = received_messages_sender_set.find(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
-
                     if (it != received_messages_sender_set.end() || message_convoy.payload[i] == 0) {
                         
                     } else {
@@ -268,4 +319,21 @@ std::vector<std::string> UDPSocket::get_logs_2() {
 
     return res;
 }
+
+// int find_min_value(unsigned int array_size, int size) {
+//     if (size <= 0) {
+//         // Handle empty array or invalid size
+//         return 0; // You might want to choose a more appropriate default value
+//     }
+
+//     int minValue = arr[0]; // Assume the first element is the minimum
+
+//     for (int i = 1; i < size; ++i) {
+//         if (arr[i] < minValue) {
+//             minValue = arr[i];
+//         }
+//     }
+
+//     return minValue;
+// }
 

@@ -8,7 +8,7 @@
 #include <signal.h>
 
 std::ofstream outputFile;
-UDPSocket udpSocket;
+UDPSocket *udpSocket;
 
 static void stop(int) {
   // reset signal handlers to default
@@ -21,9 +21,9 @@ static void stop(int) {
   // write/flush output file if necessary
   std::cout << "Writing output.\n";
 
-  std::cout << "The size of my logs: " << udpSocket.get_logs_2().size() << std::endl;
+  std::cout << "The size of my logs: " << udpSocket->get_logs_2().size() << std::endl;
 
-  for(auto const &output: udpSocket.get_logs_2()){
+  for(auto const &output: udpSocket->get_logs_2()){
     outputFile << output << std::endl;
   }
   outputFile.flush();
@@ -98,10 +98,10 @@ int main(int argc, char **argv) {
   // create a socket for that given process!
   const char* output_path = parser.outputPath();
   std::string cppString(output_path);
-  udpSocket = UDPSocket(hosts[parser.id()-1], parser);
+  udpSocket = new UDPSocket(hosts[parser.id()-1], parser);
   // start the socket -> we create two threads, one for sending and one for receiving
 
-  udpSocket.create();
+  udpSocket->create();
 
   // if this is not the receiving process, then it can broadcast the messages!
   // if (parser.id() != i) {
@@ -116,18 +116,12 @@ int main(int argc, char **argv) {
   for (unsigned int host=0; host<hosts.size(); host++) {
     if (parser.id() != hosts[host].id) {
       for (unsigned int message=1; message <= m; message++) {
-        udpSocket.enque(hosts[host], message);
-        std::cout << "this is for receiver " << hosts[host].id << std::endl;
-        // std::cout << "from sender " << parser.id() << std::endl;
-        // std::cout << "message: " << message << std::endl;
-        // std::cout << "----------" << std::endl;
+        udpSocket->enque(hosts[host], message);
+        udpSocket->enque_2(hosts[host], message);
+        // std::cout << "this is for receiver " << hosts[host].id << std::endl;
       }
     }
   }
-  // for (unsigned int host=1; host<=hosts)
-  // for (unsigned int message=1; message<=m; message++) {
-    
-  // }
 
   // After a process finishes broadcasting,
   // it waits forever for the delivery of messages.

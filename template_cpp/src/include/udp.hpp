@@ -40,10 +40,8 @@ class UDPSocket {
         Parser::Host localhost;
         Parser::Host destination;
 
-        std::vector<Parser::Host> destinations;
         std::unordered_map<unsigned long, Parser::Host> destiantions_2;
 
-        std::ofstream outputFile;
         int sockfd; // socket file descriptor
         unsigned long msg_id_2;
 
@@ -52,13 +50,14 @@ class UDPSocket {
         std::mutex message_queue_2_lock;
         std::mutex logs_lock;
 
-        std::unordered_map<unsigned long, std::vector<unsigned int>> message_queue;
+        std::unordered_map<unsigned long, std::vector<unsigned int>> message_queue; // will change this vector to set eventually
 
         std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
 
         int setup_socket(Parser::Host host);
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
 
+        void send_message();
         void send_message_2();
         void receive_message_2();
 
