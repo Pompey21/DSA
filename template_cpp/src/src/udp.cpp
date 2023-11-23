@@ -111,6 +111,15 @@ void UDPSocket::enque(Parser::Host dest, unsigned int msg) {
         // NO -> insert vector with msg 
         message_queue[dest.id].assign({msg});
     }
+
+    if (message_queue_deluxe.find(dest.id) != message_queue_deluxe.end()) {
+        // YES -> add msg
+        message_queue_deluxe[dest.id].insert(msg);
+    } else {
+        // NO -> insert new set with msg
+        message_queue_deluxe[dest.id].insert({msg});
+    }
+
     message_queue_2_lock.unlock();
 
     std::string msg_prep = "b " + std::to_string(msg);
@@ -318,21 +327,3 @@ std::vector<std::string> UDPSocket::get_logs_2() {
 
     return res;
 }
-
-// int find_min_value(unsigned int array_size, int size) {
-//     if (size <= 0) {
-//         // Handle empty array or invalid size
-//         return 0; // You might want to choose a more appropriate default value
-//     }
-
-//     int minValue = arr[0]; // Assume the first element is the minimum
-
-//     for (int i = 1; i < size; ++i) {
-//         if (arr[i] < minValue) {
-//             minValue = arr[i];
-//         }
-//     }
-
-//     return minValue;
-// }
-
