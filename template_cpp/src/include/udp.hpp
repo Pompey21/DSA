@@ -61,6 +61,7 @@ class UDPSocket {
 
         void send_message();
         void send_message_2();
+        void send_message_deluxe();
         void receive_message_2();
 
 

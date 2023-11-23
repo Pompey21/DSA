@@ -49,7 +49,8 @@ UDPSocket::UDPSocket(Parser::Host localhost, Parser parser) {
 void UDPSocket::create() {
     std::thread receive_thread(&UDPSocket::receive_message_2, this);
     // std::thread send_thread(&UDPSocket::send_message_2, this);
-    std::thread send_thread(&UDPSocket::send_message, this);
+    // std::thread send_thread(&UDPSocket::send_message, this);
+    std::thread send_thread(&UDPSocket::send_message_deluxe, this);
     
     /*
     sending 'this' pointer to both thread constructors will allow both constructors to
@@ -194,6 +195,66 @@ void UDPSocket::send_message() {
                 for (unsigned int i=0; i<iteration_maximum; i++) {
                     // std::cout << "this is the value at index " << i << " " << copied_message_queue[i] << std::endl;
                     payload[i] = copied_message_queue[i];
+                }
+
+                struct Msg_Convoy msg_convoy = {
+                    this->localhost,
+                    // this->destination, // this I now need to change
+                    this->destiantions_2[key],
+                    this->msg_id_2,
+                    payload,
+                    false
+                };
+                msg_id_2++;
+
+                // send message convoy
+                // struct sockaddr_in destaddr = this->set_up_destination_address(this->destiantions_2[key]);
+                struct sockaddr_in destaddr = this->set_up_destination_address(msg_convoy.receiver);
+                sendto(this->sockfd, &msg_convoy, sizeof(msg_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
+
+                std::cout << "Sending message ... " << std::endl;
+                // std::cout << "Destination address: " << destaddr.sin_addr.s_addr << std::endl;
+                std::cout << "Destination ID: " << this->destiantions_2[key].id << std::endl;
+                std::this_thread::sleep_for(std::chrono::seconds(4));
+            }
+        }
+    }
+}
+
+void UDPSocket::send_message_deluxe() {
+    bool infinite_loop = true;
+    while (infinite_loop) {
+
+        for (const auto& [key, value] : message_queue_deluxe) {
+            std::cout << "Key: " << key << std::endl;
+
+            if (value.size() > 0) {
+                message_queue_2_lock.lock();
+                std::set<unsigned int> copied_message_queue = value;
+                message_queue_2_lock.unlock();
+                
+                std::cout << "This is the message queue size : " << value.size() << std::endl;
+
+                // iteration maximum
+                unsigned long iteration_maximum;
+                if (value.size() > 8) {
+                    iteration_maximum = 8;
+                } else {
+                    iteration_maximum = value.size();
+                }
+
+                // in my message I can at most send 8 integers as part of the payload
+                // need to have a method to obtain the first 8 messages, of course, if they exist.
+                std::array<unsigned int, 8> payload;
+
+                unsigned long i = 0;
+                for (auto msg : copied_message_queue) {
+                    if (i < iteration_maximum) {
+                        payload[i] = msg;
+                        i++;
+                    } else {
+                        break;
+                    }
                 }
 
                 struct Msg_Convoy msg_convoy = {
