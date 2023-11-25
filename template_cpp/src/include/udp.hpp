@@ -50,8 +50,9 @@ class UDPSocket {
         std::mutex logs_lock;
 
         std::unordered_map<unsigned long, std::set<unsigned int>> message_queue_deluxe;
-
         std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
+
+        std::unordered_map<std::string, unsigned int> pending;
 
         int setup_socket(Parser::Host host);
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
