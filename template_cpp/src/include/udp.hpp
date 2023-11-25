@@ -30,7 +30,6 @@ class UDPSocket {
 
         void create();
         void enque(Parser::Host dest, unsigned int msg);
-        void enque_upgrade(Parser::Host dest, unsigned int msg);
 
         std::vector<std::string> get_logs_2();
         UDPSocket& operator=(const UDPSocket & other);
