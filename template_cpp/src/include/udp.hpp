@@ -30,7 +30,8 @@ class UDPSocket {
 
         void create();
         void enque(Parser::Host dest, unsigned int msg);
-        // std::vector<std::string> get_logs();
+        void enque_upgrade(Parser::Host dest, unsigned int msg);
+
         std::vector<std::string> get_logs_2();
         UDPSocket& operator=(const UDPSocket & other);
 
@@ -50,6 +51,7 @@ class UDPSocket {
         std::mutex logs_lock;
 
         std::unordered_map<unsigned long, std::set<unsigned int>> message_queue_deluxe;
+
         std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
 
         std::unordered_map<std::string, unsigned int> pending;
@@ -58,6 +60,7 @@ class UDPSocket {
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
 
         void send_message_deluxe();
+
         void receive_message_deluxe();
 
 

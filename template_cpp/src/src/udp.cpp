@@ -69,6 +69,7 @@ UDPSocket& UDPSocket::operator=(const UDPSocket & other) {
     this->message_queue = other.message_queue;
     this->received_messages_sender_set = other.received_messages_sender_set;
     this->logs_set = other.logs_set;
+    this->message_queue_deluxe = other.message_queue_deluxe;
     return *this;
 }
 
@@ -93,6 +94,8 @@ void UDPSocket::enque(Parser::Host dest, unsigned int msg) {
         message_queue_deluxe[dest.id].insert({msg});
     }
     message_queue_lock.unlock();
+
+    this->msg_id++;
 
     std::string msg_prep = "b " + std::to_string(msg);
     logs_lock.lock();
@@ -141,25 +144,22 @@ void UDPSocket::send_message_deluxe() {
 
                 struct Msg_Convoy msg_convoy = {
                     this->localhost,
-                    // this->destination, // this I now need to change
                     this->destiantions[key],
                     this->msg_id,
                     payload,
                     false
                 };
-                msg_id++;
 
                 // send message convoy
-                // struct sockaddr_in destaddr = this->set_up_destination_address(this->destiantions_2[key]);
                 struct sockaddr_in destaddr = this->set_up_destination_address(msg_convoy.receiver);
                 sendto(this->sockfd, &msg_convoy, sizeof(msg_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
 
                 std::cout << "Sending message ... " << std::endl;
-                // std::cout << "Destination address: " << destaddr.sin_addr.s_addr << std::endl;
                 std::cout << "Destination ID: " << this->destiantions[key].id << std::endl;
                 std::this_thread::sleep_for(std::chrono::seconds(4));
             }
         }
+        this->msg_id++;
     }
 }
 
