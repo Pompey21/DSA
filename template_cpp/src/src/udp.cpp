@@ -34,15 +34,25 @@ UDPSocket::UDPSocket(Parser::Host localhost, Parser parser) {
     this->localhost = localhost;
     sockfd = this->setup_socket(localhost);
     msg_id_2 = 0;
-    this->outputFile.open(parser.outputPath(), std::ofstream::out);
+
+    // need to initiate destinations_2 & destinations
+    for (auto host : parser.hosts()) {
+        Parser::Host host_og = host;
+        this->destiantions_2[host.id] = host;
+        std::cout << "This is the host ID: " << destiantions_2[host.id].id << std::endl;
+        std::cout << "This is the host IP: " << destiantions_2[host.id].ip << std::endl;
+    }
+    std::cout << "\nSize of my destinations_2: " << destiantions_2.size() << std::endl;
 }
 
 // Creating two threads per socket, one for sending and one for receiving messages.
 void UDPSocket::create() {
-    std::thread receive_thread(&UDPSocket::receive_message_2, this);
-    std::thread send_thread(&UDPSocket::send_message_2, this);
+    // std::thread receive_thread(&UDPSocket::receive_message_2, this);
+    std::thread receive_thread(&UDPSocket::receive_message_deluxe, this);
+    // std::thread send_thread(&UDPSocket::send_message_2, this);
+    // std::thread send_thread(&UDPSocket::send_message, this);
+    std::thread send_thread(&UDPSocket::send_message_deluxe, this);
     
-
     /*
     sending 'this' pointer to both thread constructors will allow both constructors to
     operate on the same instance of UDPSocket object    
@@ -53,12 +63,12 @@ void UDPSocket::create() {
 
 // Setting private parameters of the UDPSocket class.
 UDPSocket& UDPSocket::operator=(const UDPSocket & other) {
-    this->logs = other.logs;
     this->localhost = other.localhost;
     this->sockfd = other.sockfd;
     this->msg_id_2 = other.msg_id_2;
     this->message_queue_2 = other.message_queue_2;
     this->received_messages_sender_set = other.received_messages_sender_set;
+    this->logs_set = other.logs_set;
     return *this;
 }
 
@@ -71,45 +81,85 @@ struct sockaddr_in UDPSocket::set_up_destination_address(Parser::Host dest) {
     return destaddr;
 }
 
-void UDPSocket::enque_2(Parser::Host dest, unsigned int msg) {
-    struct sockaddr_in destaddr = this->set_up_destination_address(dest);
-    destination = dest;
+
+void UDPSocket::enque(Parser::Host dest, unsigned int msg) {
     message_queue_2_lock.lock();
-    message_queue_2.push_back(msg);
-    std::ostringstream oss;
-    oss << "b " << msg;
-    logs.push_back(oss.str());
+    // check if there has already been an array inserted
+    if (message_queue_deluxe.find(dest.id) != message_queue_deluxe.end()) {
+        // YES -> add msg
+        message_queue_deluxe[dest.id].insert(msg);
+    } else {
+        // NO -> insert new set with msg
+        message_queue_deluxe[dest.id].insert({msg});
+    }
+
     message_queue_2_lock.unlock();
+    std::string msg_prep = "b " + std::to_string(msg);
+    logs_lock.lock();
+    auto it = logs_set.find(msg_prep);
+    if (it == logs_set.end()) {
+        logs_set.insert(msg_prep);
+    }
+    logs_lock.unlock();
 }
 
-void UDPSocket::send_message_2() {
+void UDPSocket::send_message_deluxe() {
     bool infinite_loop = true;
     while (infinite_loop) {
-        message_queue_2_lock.lock();
-        std::vector<unsigned int> copied_message_queue = message_queue_2;
-        message_queue_2_lock.unlock();
 
-        // in my message I can at most send 8 integers as part of the payload
-        // need to have a method to obtain the first 8 messages, of course, if they exist.
-        std::array<unsigned int, 8> payload;
-        auto curr_queue_size = message_queue_2.size();
-        
-        for (unsigned int i = 0; i<curr_queue_size; i++) {
-            payload[i] = message_queue_2[i];
+        for (const auto& [key, value] : message_queue_deluxe) {
+            std::cout << "Key: " << key << std::endl;
+
+            if (value.size() > 0) {
+                message_queue_2_lock.lock();
+                std::set<unsigned int> copied_message_queue = value;
+                message_queue_2_lock.unlock();
+                
+                std::cout << "This is the message queue size : " << value.size() << std::endl;
+
+                // iteration maximum
+                unsigned long iteration_maximum;
+                if (value.size() > 8) {
+                    iteration_maximum = 8;
+                } else {
+                    iteration_maximum = value.size();
+                }
+
+                // in my message I can at most send 8 integers as part of the payload
+                // need to have a method to obtain the first 8 messages, of course, if they exist.
+                std::array<unsigned int, 8> payload;
+
+                unsigned long i = 0;
+                for (auto msg : copied_message_queue) {
+                    if (i < iteration_maximum) {
+                        payload[i] = msg;
+                        i++;
+                    } else {
+                        break;
+                    }
+                }
+
+                struct Msg_Convoy msg_convoy = {
+                    this->localhost,
+                    // this->destination, // this I now need to change
+                    this->destiantions_2[key],
+                    this->msg_id_2,
+                    payload,
+                    false
+                };
+                msg_id_2++;
+
+                // send message convoy
+                // struct sockaddr_in destaddr = this->set_up_destination_address(this->destiantions_2[key]);
+                struct sockaddr_in destaddr = this->set_up_destination_address(msg_convoy.receiver);
+                sendto(this->sockfd, &msg_convoy, sizeof(msg_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
+
+                std::cout << "Sending message ... " << std::endl;
+                // std::cout << "Destination address: " << destaddr.sin_addr.s_addr << std::endl;
+                std::cout << "Destination ID: " << this->destiantions_2[key].id << std::endl;
+                std::this_thread::sleep_for(std::chrono::seconds(4));
+            }
         }
-
-        struct Msg_Convoy msg_convoy = {
-            this->localhost,
-            this->destination,
-            msg_id_2,
-            payload,
-            false
-        };
-        msg_id_2++;
-
-        // send message convoy
-        struct sockaddr_in destaddr = this->set_up_destination_address(this->destination);
-        sendto(this->sockfd, &msg_convoy, sizeof(msg_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
     }
 }
 
@@ -123,6 +173,9 @@ void UDPSocket::receive_message_2() {
         } 
 
         else {
+
+            // std::cout << "At least we receive something!" << std::endl;
+            
             if (message_convoy.is_ack) {
                 // need to parse the message
                 // erase them from my message queue
@@ -142,27 +195,22 @@ void UDPSocket::receive_message_2() {
                 // if we haven't received it yet, then we need to save it
 
                 for (unsigned int i = 0; i < message_convoy.payload.size(); i++) {
+                    // std::cout << message_convoy.payload[i] << std::endl;
                     auto it = received_messages_sender_set.find(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
-
-                    if (it != received_messages_sender_set.end()) {
+                    if (it != received_messages_sender_set.end() || message_convoy.payload[i] == 0) {
                         
                     } else {
                         std::ostringstream oss;
                         oss << "d " << message_convoy.sender.id << " " << message_convoy.payload[i];
-                        logs.push_back(oss.str());
-                        std::cout << "Received " << message_convoy.payload[i] << " from " << message_convoy.sender.id << '\n';
 
-
-                        if (logs.size() > 5) {
-                            for (auto const &output: logs) {
-                                // this->outputFile << output << std::endl;
-                                std::cout << "Hllo Rares: " << output << std::endl;
-                            }
-                            // std::cout << this->outputFile;
-                            
-                            // this->outputFile.flush();
-                            // logs.clear();
+                        logs_lock.lock();
+                        std::string msg_prep = "d " + std::to_string(message_convoy.sender.id) + " " + std::to_string(message_convoy.payload[i]);
+                        std::cout << "This is the message: " << msg_prep << std::endl;
+                        auto it = logs_set.find(msg_prep);
+                        if (it == logs_set.end()) {
+                            logs_set.insert(msg_prep);
                         }
+                        logs_lock.unlock();
 
                         received_messages_sender_set.insert(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
                     }
@@ -177,6 +225,69 @@ void UDPSocket::receive_message_2() {
 
                 sendto(this->sockfd, &message_convoy, sizeof(message_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
                     
+            }
+        }
+    }
+}
+
+
+void UDPSocket::receive_message_deluxe() {
+    struct Msg_Convoy message_convoy;
+    while (true) {
+
+        if (recv(this->sockfd, &message_convoy, sizeof(message_convoy), 0) < 0) {
+            throw std::runtime_error("Receive failed");
+        }
+
+        else {
+            if (message_convoy.is_ack) {
+                // need to parse the message => remove from my queues
+                message_queue_2_lock.lock();
+
+                std::array<unsigned int, 8> payload = message_convoy.payload;
+
+                // remove every message from the queue for which I received the ack => queue of that given process
+                for (unsigned int i = 0; i < payload.size(); i++) {
+                    // is it okey even if the element does not exist in the set????
+                    message_queue_deluxe[message_convoy.sender.id].erase(payload[i]);
+                }
+                message_queue_2_lock.unlock();
+            }
+
+            else {
+                // if we have not received it yet, then we need to save it 
+
+                for (unsigned int i = 0; i < message_convoy.payload.size(); i++) {
+                    
+                    auto it = received_messages_sender_set.find(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
+                    if (it != received_messages_sender_set.end() || message_convoy.payload[i] == 0) {
+
+                    }
+                    else {
+                        std::ostringstream oss;
+                        oss << "d " << message_convoy.sender.id << " " << message_convoy.payload[i];
+
+                        logs_lock.lock();
+                        std::string msg_prep = "d " + std::to_string(message_convoy.sender.id) + " " + std::to_string(message_convoy.payload[i]);
+                        std::cout << "This is the message: " << msg_prep << std::endl;
+                        auto it = logs_set.find(msg_prep);
+                        if (it == logs_set.end()) {
+                            logs_set.insert(msg_prep);
+                        }
+                        logs_lock.unlock();
+
+                        received_messages_sender_set.insert(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
+                    }
+                }
+
+                // send the Ack back to sender
+                message_convoy.is_ack = true;
+                struct sockaddr_in destaddr = this->set_up_destination_address(message_convoy.sender);
+                Parser::Host tempAddr = message_convoy.sender;
+                message_convoy.sender = this->localhost;
+                message_convoy.receiver = tempAddr;
+
+                sendto(this->sockfd, &message_convoy, sizeof(message_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
             }
         }
     }
@@ -202,7 +313,11 @@ int UDPSocket::setup_socket(Parser::Host host) {
     return sockfd;
 }
 
-std::vector<std::string> UDPSocket::get_logs() {
+std::vector<std::string> UDPSocket::get_logs_2() {
+    std::vector<std::string> res;
+    for (auto elem : this->logs_set) {
+        res.push_back(elem);
+    }
 
-    return this->logs;
+    return res;
 }
