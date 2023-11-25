@@ -59,10 +59,9 @@ class UDPSocket {
         int setup_socket(Parser::Host host);
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
 
-        void send_message();
-        void send_message_2();
         void send_message_deluxe();
         void receive_message_2();
+        void receive_message_deluxe();
 
 
 

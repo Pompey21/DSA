@@ -47,7 +47,8 @@ UDPSocket::UDPSocket(Parser::Host localhost, Parser parser) {
 
 // Creating two threads per socket, one for sending and one for receiving messages.
 void UDPSocket::create() {
-    std::thread receive_thread(&UDPSocket::receive_message_2, this);
+    // std::thread receive_thread(&UDPSocket::receive_message_2, this);
+    std::thread receive_thread(&UDPSocket::receive_message_deluxe, this);
     // std::thread send_thread(&UDPSocket::send_message_2, this);
     // std::thread send_thread(&UDPSocket::send_message, this);
     std::thread send_thread(&UDPSocket::send_message_deluxe, this);
@@ -240,19 +241,7 @@ void UDPSocket::receive_message_2() {
                         if (it == logs_set.end()) {
                             logs_set.insert(msg_prep);
                         }
-                        // logs_set.insert(msg_prep);
                         logs_lock.unlock();
-
-                        // if (logs.size() > 5) {
-                        //     for (auto const &output: logs) {
-                        //         // this->outputFile << output << std::endl;
-                        //         std::cout << "Hllo Rares: " << output << std::endl;
-                        //     }
-                        //     // std::cout << this->outputFile;
-                            
-                        //     // this->outputFile.flush();
-                        //     // logs.clear();
-                        // }
 
                         received_messages_sender_set.insert(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
                     }
@@ -267,6 +256,69 @@ void UDPSocket::receive_message_2() {
 
                 sendto(this->sockfd, &message_convoy, sizeof(message_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
                     
+            }
+        }
+    }
+}
+
+
+void UDPSocket::receive_message_deluxe() {
+    struct Msg_Convoy message_convoy;
+    while (true) {
+
+        if (recv(this->sockfd, &message_convoy, sizeof(message_convoy), 0) < 0) {
+            throw std::runtime_error("Receive failed");
+        }
+
+        else {
+            if (message_convoy.is_ack) {
+                // need to parse the message => remove from my queues
+                message_queue_2_lock.lock();
+
+                std::array<unsigned int, 8> payload = message_convoy.payload;
+
+                // remove every message from the queue for which I received the ack => queue of that given process
+                for (unsigned int i = 0; i < payload.size(); i++) {
+                    // is it okey even if the element does not exist in the set????
+                    message_queue_deluxe[message_convoy.sender.id].erase(payload[i]);
+                }
+                message_queue_2_lock.unlock();
+            }
+
+            else {
+                // if we have not received it yet, then we need to save it 
+
+                for (unsigned int i = 0; i < message_convoy.payload.size(); i++) {
+                    
+                    auto it = received_messages_sender_set.find(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
+                    if (it != received_messages_sender_set.end() || message_convoy.payload[i] == 0) {
+
+                    }
+                    else {
+                        std::ostringstream oss;
+                        oss << "d " << message_convoy.sender.id << " " << message_convoy.payload[i];
+
+                        logs_lock.lock();
+                        std::string msg_prep = "d " + std::to_string(message_convoy.sender.id) + " " + std::to_string(message_convoy.payload[i]);
+                        std::cout << "This is the message: " << msg_prep << std::endl;
+                        auto it = logs_set.find(msg_prep);
+                        if (it == logs_set.end()) {
+                            logs_set.insert(msg_prep);
+                        }
+                        logs_lock.unlock();
+
+                        received_messages_sender_set.insert(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
+                    }
+                }
+
+                // send the Ack back to sender
+                message_convoy.is_ack = true;
+                struct sockaddr_in destaddr = this->set_up_destination_address(message_convoy.sender);
+                Parser::Host tempAddr = message_convoy.sender;
+                message_convoy.sender = this->localhost;
+                message_convoy.receiver = tempAddr;
+
+                sendto(this->sockfd, &message_convoy, sizeof(message_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
             }
         }
     }
