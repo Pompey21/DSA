@@ -81,39 +81,10 @@ struct sockaddr_in UDPSocket::set_up_destination_address(Parser::Host dest) {
     return destaddr;
 }
 
-void UDPSocket::enque_2(Parser::Host dest, unsigned int msg) {
-
-    this->destination = dest;
-
-    message_queue_2_lock.lock();
-    message_queue_2.push_back(msg);
-
-    std::string msg_prep = "b " + std::to_string(msg);
-    // std::cout << "This is the message prep: " << msg_prep << std::endl;
-    logs_lock.lock();
-    auto it = logs_set.find(msg_prep);
-    if (it == logs_set.end()) {
-        logs_set.insert(msg_prep);
-    }
-    logs_lock.unlock();
-    
-    message_queue_2_lock.unlock();
-}
 
 void UDPSocket::enque(Parser::Host dest, unsigned int msg) {
-
-    // std::cout << "Size of my destinations_2: " << this->destiantions_2.size() << std::endl;
-
     message_queue_2_lock.lock();
     // check if there has already been an array inserted
-    if (message_queue.find(dest.id) != message_queue.end()) {
-        // YES -> append msg
-        message_queue[dest.id].push_back(msg);
-    } else {
-        // NO -> insert vector with msg 
-        message_queue[dest.id].assign({msg});
-    }
-
     if (message_queue_deluxe.find(dest.id) != message_queue_deluxe.end()) {
         // YES -> add msg
         message_queue_deluxe[dest.id].insert(msg);
@@ -123,9 +94,7 @@ void UDPSocket::enque(Parser::Host dest, unsigned int msg) {
     }
 
     message_queue_2_lock.unlock();
-
     std::string msg_prep = "b " + std::to_string(msg);
-    // std::cout << "This is the message prep: " << msg_prep << std::endl;
     logs_lock.lock();
     auto it = logs_set.find(msg_prep);
     if (it == logs_set.end()) {
