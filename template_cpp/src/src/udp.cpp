@@ -192,10 +192,12 @@ void UDPSocket::receive_message_deluxe() {
                 for (unsigned int i = 0; i < message_convoy.payload.size(); i++) {
                     
                     auto it = received_messages_sender_set.find(std::make_tuple(message_convoy.sender.id, message_convoy.payload[i]));
-                    if (it != received_messages_sender_set.end() || message_convoy.payload[i] == 0) {
+                    if (!(it != received_messages_sender_set.end() || message_convoy.payload[i] == 0)) {
 
-                    }
-                    else {
+                        // 1. add it to the 'pending' variable
+
+                        // 2. enque it to be sent to all other processes
+
                         std::ostringstream oss;
                         oss << "d " << message_convoy.sender.id << " " << message_convoy.payload[i];
 
