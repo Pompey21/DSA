@@ -30,7 +30,8 @@ class UDPSocket {
 
         void create();
         void enque(Parser::Host dest, unsigned int msg);
-        // std::vector<std::string> get_logs();
+        void enque_upgrade(Parser::Host dest, unsigned int msg);
+
         std::vector<std::string> get_logs_2();
         UDPSocket& operator=(const UDPSocket & other);
 
@@ -39,17 +40,18 @@ class UDPSocket {
         Parser::Host localhost;
         Parser::Host destination;
 
-        std::unordered_map<unsigned long, Parser::Host> destiantions_2;
+        std::unordered_map<unsigned long, Parser::Host> destiantions;
 
         int sockfd; // socket file descriptor
-        unsigned long msg_id_2;
+        unsigned long msg_id;
 
         std::set<std::string> logs_set;
-        std::vector<unsigned int> message_queue_2;
-        std::mutex message_queue_2_lock;
+        std::vector<unsigned int> message_queue;
+        std::mutex message_queue_lock;
         std::mutex logs_lock;
 
         std::unordered_map<unsigned long, std::set<unsigned int>> message_queue_deluxe;
+
         std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
 
         std::unordered_map<std::string, unsigned int> pending;
@@ -58,7 +60,7 @@ class UDPSocket {
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
 
         void send_message_deluxe();
-        void receive_message_2();
+
         void receive_message_deluxe();
 
 
