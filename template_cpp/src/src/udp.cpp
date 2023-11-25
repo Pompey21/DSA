@@ -95,8 +95,6 @@ void UDPSocket::enque(Parser::Host dest, unsigned int msg) {
     }
     message_queue_lock.unlock();
 
-    this->msg_id++;
-
     std::string msg_prep = "b " + std::to_string(msg);
     logs_lock.lock();
     auto it = logs_set.find(msg_prep);
