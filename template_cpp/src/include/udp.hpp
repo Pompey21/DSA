@@ -51,14 +51,14 @@ class UDPSocket {
         
         std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
         std::unordered_map<std::string, unsigned int> pending;
-        std::unordered_map<unsigned long, std::set<unsigned int>> message_queue_deluxe;
+        std::unordered_map<unsigned long, std::set<unsigned int>> message_queue;
 
-        std::unordered_map<unsigned long, std::set<Msg_Convoy>> message_queue_deluxe_upgrade;
+        std::unordered_map<unsigned long, std::set<Msg_Convoy>> message_queue_upgrade;
 
         int setup_socket(Parser::Host host);
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
-        void send_message_deluxe();
-        void receive_message_deluxe();
+        void send_message();
+        void receive_message();
         std::vector<unsigned int> message_convoy_parser(Msg_Convoy);
 
         // pritners

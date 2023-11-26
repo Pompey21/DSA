@@ -45,8 +45,8 @@ UDPSocket::UDPSocket(Parser::Host localhost, Parser parser) {
 
 // Creating two threads per socket, one for sending and one for receiving messages.
 void UDPSocket::create() {
-    std::thread receive_thread(&UDPSocket::receive_message_deluxe, this);
-    std::thread send_thread(&UDPSocket::send_message_deluxe, this);
+    std::thread receive_thread(&UDPSocket::receive_message, this);
+    std::thread send_thread(&UDPSocket::send_message, this);
     
     /*
     sending 'this' pointer to both thread constructors will allow both constructors to
@@ -63,7 +63,7 @@ UDPSocket& UDPSocket::operator=(const UDPSocket & other) {
     this->msg_id = other.msg_id;
     this->received_messages_sender_set = other.received_messages_sender_set;
     this->logs_set = other.logs_set;
-    this->message_queue_deluxe = other.message_queue_deluxe;
+    this->message_queue = other.message_queue;
     return *this;
 }
 
@@ -80,12 +80,12 @@ struct sockaddr_in UDPSocket::set_up_destination_address(Parser::Host dest) {
 void UDPSocket::enque(Parser::Host dest, unsigned int msg) {
     message_queue_lock.lock();
     // check if there has already been an array inserted
-    if (message_queue_deluxe.find(dest.id) != message_queue_deluxe.end()) {
+    if (message_queue.find(dest.id) != message_queue.end()) {
         // YES -> add msg
-        message_queue_deluxe[dest.id].insert(msg);
+        message_queue[dest.id].insert(msg);
     } else {
         // NO -> insert new set with msg
-        message_queue_deluxe[dest.id].insert({msg});
+        message_queue[dest.id].insert({msg});
     }
     message_queue_lock.unlock();
 
@@ -103,7 +103,7 @@ void UDPSocket::enque_upgrade(unsigned int msg) {
     message_queue_lock.lock();
 
     for (auto& [key, value] : this->destiantions) {
-        message_queue_deluxe_upgrade[value.id].insert({});
+        message_queue_upgrade[value.id].insert({});
     }
 
     std::array<unsigned int, 8> payload;
@@ -111,7 +111,7 @@ void UDPSocket::enque_upgrade(unsigned int msg) {
     for (unsigned int i = 0; i<=msg; i++) {
         if ( (i % 8 == 0 && i != 0) || (i == msg) ) { // need to create a struct and enque it!
             // 2. add to set for every process
-            for (auto& [key, value] : message_queue_deluxe_upgrade) {
+            for (auto& [key, value] : message_queue_upgrade) {
 
                 // 1. create the Msg struct
                 struct Msg_Convoy msg_convoy = {
@@ -135,11 +135,11 @@ void UDPSocket::enque_upgrade(unsigned int msg) {
 }
 
 
-void UDPSocket::send_message_deluxe() {
+void UDPSocket::send_message() {
     bool infinite_loop = true;
     while (infinite_loop) {
 
-        for (const auto& [key, value] : message_queue_deluxe) {
+        for (const auto& [key, value] : message_queue) {
             std::cout << "Key: " << key << std::endl;
 
             if (value.size() > 0) {
@@ -194,7 +194,7 @@ void UDPSocket::send_message_deluxe() {
 
 
 // receive() implements reception of both, normal message as well as an acknowledgement!
-void UDPSocket::receive_message_deluxe() {
+void UDPSocket::receive_message() {
     struct Msg_Convoy message_convoy;
     while (true) {
 
@@ -212,7 +212,7 @@ void UDPSocket::receive_message_deluxe() {
                 // remove every message from the queue for which I received the ack => queue of that given process
                 for (unsigned int i = 0; i < payload.size(); i++) {
                     // is it okey even if the element does not exist in the set????
-                    message_queue_deluxe[message_convoy.sender.id].erase(payload[i]);
+                    message_queue[message_convoy.sender.id].erase(payload[i]);
                 }
                 message_queue_lock.unlock();
             }
