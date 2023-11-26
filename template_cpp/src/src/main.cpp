@@ -23,7 +23,7 @@ static void stop(int) {
 
   std::cout << "The size of my logs: " << udpSocket->get_logs().size() << std::endl;
 
-  for(auto const &output: udpSocket->get_logs_2()){
+  for(auto const &output: udpSocket->get_logs()){
     outputFile << output << std::endl;
   }
   outputFile.flush();
@@ -120,8 +120,5 @@ int main(int argc, char **argv) {
   while (true) {
     std::this_thread::sleep_for(std::chrono::hours(1));
   }
-
-  
-
   return 0;
 }

@@ -27,11 +27,12 @@ struct Msg_Convoy {
 // doesn't really work yet
     friend bool operator<(const Msg_Convoy& l, const Msg_Convoy& r)
     {
-        return std::tie(l.sender.id, l.receiver.id, l.msg_id, l.payload, l.is_ack, l.is_relay)
-             < std::tie(r.sender.id, r.receiver.id, r.msg_id, r.payload, r.is_ack, r.is_relay); // keep the same order
+        return std::tie(l.sender.id, l.receiver.id, l.msg_id, l.payload)
+             < std::tie(r.sender.id, r.receiver.id, r.msg_id, r.payload); // keep the same order
     }
 
     void msg_convoy_print() {
+        std::cout << "-----------------------------------------" << std::endl;
         std::cout << "Sender: " << this->sender.id << std::endl;
         std::cout << "The Original Sender: " << this->original_sender << std::endl;
         std::cout << "Receiver: " << this->receiver.id << std::endl;
@@ -48,6 +49,7 @@ struct Msg_Convoy {
         if (this->is_relay) {
             std::cout << "This message is a relay." << std::endl;
         }
+        std::cout << "-----------------------------------------" << std::endl;
     }
 };
 

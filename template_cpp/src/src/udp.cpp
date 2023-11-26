@@ -38,15 +38,13 @@ UDPSocket::UDPSocket(Parser::Host localhost, Parser parser) {
     for (auto host : parser.hosts()) {
         Parser::Host host_og = host;
         this->destiantions[host.id] = host;
-        std::cout << "This is the host ID: " << destiantions[host.id].id << std::endl;
-        std::cout << "This is the host IP: " << destiantions[host.id].ip << std::endl;
     }
 }
 
 // Creating two threads per socket, one for sending and one for receiving messages.
 void UDPSocket::create() {
-    std::thread receive_thread(&UDPSocket::receive_message, this);
-    std::thread send_thread(&UDPSocket::send_message, this);
+    std::thread receive_thread(&UDPSocket::receive_message_upgrade, this);
+    std::thread send_thread(&UDPSocket::send_message_upgrade, this);
     
     /*
     sending 'this' pointer to both thread constructors will allow both constructors to
@@ -112,11 +110,20 @@ void UDPSocket::enque_upgrade(unsigned int msg) {
 
     std::array<unsigned int, 8> payload;
 
-    for (unsigned int i = 0; i<=msg; i++) {
+    for (unsigned int i = 1; i<=msg; i++) {
+        payload[(i-1)%8] = i;
+        std::string msg_prep = "b " + std::to_string(msg);
+        logs_lock.lock();
+        auto it = logs_set.find(msg_prep);
+        if (it == logs_set.end()) {
+            logs_set.insert(msg_prep);
+        }
+        logs_lock.unlock();
+
+        std::cout << i << std::endl;
         if ( (i % 8 == 0 && i != 0) || (i == msg) ) { // need to create a struct and enque it!
             // 1. add to set for every process
             for (auto& [key, value] : message_queue_upgrade) {
-
                 // 2. create the Msg struct
                 struct Msg_Convoy msg_convoy = {
                     this->localhost,
@@ -130,12 +137,12 @@ void UDPSocket::enque_upgrade(unsigned int msg) {
 
                 if (key != this->localhost.id) {
                     value.insert(msg_convoy);
-                    // msg_convoy.msg_convoy_print();
+                    this->msg_id++;
+                    msg_convoy.msg_convoy_print();
                 }
             }
             payload.fill(0);
         }
-        payload[i%8] = i;
     }
     message_queue_lock.unlock();
 }
@@ -148,26 +155,32 @@ void UDPSocket::send_message_upgrade() {
     while (infinite_loop) {
 
         for (const auto& [key, value] : message_queue_upgrade) {
-            std::cout << "Key: " << key << std::endl;
-
             if (value.size() > 0) {
                 message_queue_lock.lock();
                 std::set<Msg_Convoy> copied_message_queue = value;
                 message_queue_lock.unlock();
 
-                std::cout << "This is the message queue size : " << copied_message_queue.size() << std::endl;
+                std::cout << "\n" << std::endl;
+                std::cout << "Sending for: " << key << std::endl;
+                std::cout << " the message queue size : " << copied_message_queue.size() << std::endl;
 
-                for (const auto& message : copied_message_queue) {
-                    std::cout << "Sending the message" << std::endl;
-
+                for (Msg_Convoy message : copied_message_queue) {
                     struct sockaddr_in destaddr = this->set_up_destination_address(message.receiver);
                     sendto(this->sockfd, &message, sizeof(message), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
 
-                    std::cout << "Sending message ... " << std::endl;
-                    std::cout << "Destination ID: " << message.receiver.id << std::endl;
+                    std::cout << "OG sender: " << message.original_sender << std::endl;
+                    message.msg_convoy_print();
                     std::this_thread::sleep_for(std::chrono::seconds(4));
                 }
+                std::cout << "\n" << std::endl;
             }
+
+            else if (value.size() == 0 && key != this->localhost.id) {
+                std::cout << "\n" << std::endl;
+                std::cout << "cleared the queue | destination : " << key << std::endl;
+                std::cout << "\n" << std::endl;
+            }
+
         }
     }
 }
@@ -183,10 +196,13 @@ void UDPSocket::receive_message_upgrade() {
         else {
             if (message_convoy.is_ack) {
                 // need to parse the message => remove from my queues
+                std::cout << "\n" << std::endl;
+                std::cout << "Received Ack" << std::endl;
+                
                 if (message_convoy.is_relay) {
                     // if not yet received from this process, add it to Pending Counter
-                    if (!(pending[message_convoy.original_sender][message_convoy].find(message_convoy.original_sender) != pending[message_convoy.original_sender][message_convoy].end())) {
-                        pending[message_convoy.original_sender][message_convoy].insert(message_convoy.original_sender);
+                    if (!(pending[message_convoy.original_sender][message_convoy].find(message_convoy.sender.id) != pending[message_convoy.original_sender][message_convoy].end())) {
+                        pending[message_convoy.original_sender][message_convoy].insert(message_convoy.sender.id);
                     }
 
                     // check if I have enough ACKS => deliver
@@ -196,25 +212,30 @@ void UDPSocket::receive_message_upgrade() {
 
                             // write it to the logs file
                             for (unsigned int i = 0; i < message_convoy.payload.size(); i++) {
-                                std::ostringstream oss;
-                                oss << "d " << message_convoy.original_sender << " " << message_convoy.payload[i];
+                                if (message_convoy.payload[i] != 0) {
+                                    std::ostringstream oss;
+                                    oss << "d " << message_convoy.original_sender << " " << message_convoy.payload[i];
 
-                                logs_lock.lock();
-                                std::string msg_prep = "d " + std::to_string(message_convoy.original_sender) + " " + std::to_string(message_convoy.payload[i]);
-                                std::cout << "This is the message: " << msg_prep << std::endl;
-                                auto it = logs_set.find(msg_prep);
-                                if (it == logs_set.end()) {
-                                    logs_set.insert(msg_prep);
+                                    logs_lock.lock();
+                                    std::string msg_prep = "d " + std::to_string(message_convoy.original_sender) + " " + std::to_string(message_convoy.payload[i]);
+                                    std::cout << "This is the message: " << msg_prep << std::endl;
+                                    auto it = logs_set.find(msg_prep);
+                                    if (it == logs_set.end()) {
+                                        logs_set.insert(msg_prep);
+                                    }
+                                    logs_lock.unlock();
                                 }
-                                logs_lock.unlock();
                             }
                         }
                     }
                 } 
+                std::cout << "the size of queue before removal : " << message_queue_upgrade[message_convoy.sender.id].size() << std::endl;
                 message_queue_lock.lock();
                 // remove every message from the queue for which I received the ack => queue of that given process
                 message_queue_upgrade[message_convoy.sender.id].erase(message_convoy);
                 message_queue_lock.unlock();
+                std::cout << "the size of queue after removal : " << message_queue_upgrade[message_convoy.sender.id].size() << std::endl;
+                std::cout << "\n" << std::endl;
             }
 
             else {
