@@ -4,9 +4,9 @@
 #include <arpa/inet.h>
 #include <mutex>
 #include "parser.hpp"
-#include "message.hpp"
 #include "message_2.hpp"
 #include <set>
+#include <unordered_set>
 #include <tuple>
 #include <unordered_map>
 
@@ -30,6 +30,7 @@ class UDPSocket {
 
         void create();
         void enque(Parser::Host dest, unsigned int msg);
+        void enque_upgrade(unsigned int msg);
 
         std::vector<std::string> get_logs_2();
         UDPSocket& operator=(const UDPSocket & other);
@@ -44,25 +45,23 @@ class UDPSocket {
         int sockfd; // socket file descriptor
         unsigned long msg_id;
 
-        std::set<std::string> logs_set;
-        std::vector<unsigned int> message_queue;
-        std::mutex message_queue_lock;
         std::mutex logs_lock;
-
+        std::set<std::string> logs_set;
+        std::mutex message_queue_lock;
+        
+        std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
+        std::unordered_map<std::string, unsigned int> pending;
         std::unordered_map<unsigned long, std::set<unsigned int>> message_queue_deluxe;
 
-        std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
-
-        std::unordered_map<std::string, unsigned int> pending;
+        std::unordered_map<unsigned long, std::set<Msg_Convoy>> message_queue_deluxe_upgrade;
 
         int setup_socket(Parser::Host host);
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
-
         void send_message_deluxe();
-
         void receive_message_deluxe();
-
-
-
         std::vector<unsigned int> message_convoy_parser(Msg_Convoy);
+
+        // pritners
+        // void msg_convoy_print(Msg_convoy);
+
 };

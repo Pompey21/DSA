@@ -35,22 +35,17 @@ UDPSocket::UDPSocket(Parser::Host localhost, Parser parser) {
     sockfd = this->setup_socket(localhost);
     msg_id = 0;
 
-    // need to initiate destinations_2 & destinations
     for (auto host : parser.hosts()) {
         Parser::Host host_og = host;
         this->destiantions[host.id] = host;
         std::cout << "This is the host ID: " << destiantions[host.id].id << std::endl;
         std::cout << "This is the host IP: " << destiantions[host.id].ip << std::endl;
     }
-    std::cout << "\nSize of my destinations_2: " << destiantions.size() << std::endl;
 }
 
 // Creating two threads per socket, one for sending and one for receiving messages.
 void UDPSocket::create() {
-    // std::thread receive_thread(&UDPSocket::receive_message_2, this);
     std::thread receive_thread(&UDPSocket::receive_message_deluxe, this);
-    // std::thread send_thread(&UDPSocket::send_message_2, this);
-    // std::thread send_thread(&UDPSocket::send_message, this);
     std::thread send_thread(&UDPSocket::send_message_deluxe, this);
     
     /*
@@ -66,7 +61,6 @@ UDPSocket& UDPSocket::operator=(const UDPSocket & other) {
     this->localhost = other.localhost;
     this->sockfd = other.sockfd;
     this->msg_id = other.msg_id;
-    this->message_queue = other.message_queue;
     this->received_messages_sender_set = other.received_messages_sender_set;
     this->logs_set = other.logs_set;
     this->message_queue_deluxe = other.message_queue_deluxe;
@@ -103,6 +97,43 @@ void UDPSocket::enque(Parser::Host dest, unsigned int msg) {
     }
     logs_lock.unlock();
 }
+
+void UDPSocket::enque_upgrade(unsigned int msg) {
+
+    message_queue_lock.lock();
+
+    for (auto& [key, value] : this->destiantions) {
+        message_queue_deluxe_upgrade[value.id].insert({});
+    }
+
+    std::array<unsigned int, 8> payload;
+
+    for (unsigned int i = 0; i<=msg; i++) {
+        if ( (i % 8 == 0 && i != 0) || (i == msg) ) { // need to create a struct and enque it!
+            // 2. add to set for every process
+            for (auto& [key, value] : message_queue_deluxe_upgrade) {
+
+                // 1. create the Msg struct
+                struct Msg_Convoy msg_convoy = {
+                    this->localhost,
+                    this->destiantions[key],
+                    this->msg_id,
+                    payload,
+                    false
+                };
+
+                if (key != this->localhost.id) {
+                    value.insert(msg_convoy);
+                    // msg_convoy.msg_convoy_print();
+                }
+            }
+            payload.fill(0);
+        }
+        payload[i%8] = i;
+    }
+    message_queue_lock.unlock();
+}
+
 
 void UDPSocket::send_message_deluxe() {
     bool infinite_loop = true;
@@ -252,6 +283,5 @@ std::vector<std::string> UDPSocket::get_logs_2() {
     for (auto elem : this->logs_set) {
         res.push_back(elem);
     }
-
     return res;
 }

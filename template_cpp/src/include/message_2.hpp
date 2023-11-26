@@ -21,4 +21,26 @@ struct Msg_Convoy {
                     receiver.port == other.receiver.port &&
                     msg_id == other.msg_id;
     }
+
+// doesn't really work yet
+    friend bool operator<(const Msg_Convoy& l, const Msg_Convoy& r)
+    {
+        return std::tie(l.sender.id, l.receiver.id, l.msg_id, l.payload, l.is_ack)
+             < std::tie(r.sender.id, r.receiver.id, r.msg_id, r.payload, r.is_ack); // keep the same order
+    }
+
+    void msg_convoy_print() {
+        std::cout << "Sender: " << this->sender.id << std::endl;
+        std::cout << "Receiver: " << this->receiver.id << std::endl;
+
+        std::cout << "This is the payload: " << std::endl;
+        for (unsigned int msg : this->payload) {
+            std::cout << msg << std::endl;
+        }
+        
+        if (this->is_ack) {
+            std::cout << "This message is an acknowledgeement." << std::endl;
+        }
+    }
 };
+
