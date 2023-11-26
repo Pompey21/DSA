@@ -392,7 +392,7 @@ int UDPSocket::setup_socket(Parser::Host host) {
     return sockfd;
 }
 
-std::vector<std::string> UDPSocket:() {
+std::vector<std::string> UDPSocket::get_logs() {
     std::vector<std::string> res;
     for (auto elem : this->logs_set) {
         res.push_back(elem);
