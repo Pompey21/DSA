@@ -4,11 +4,12 @@
 #include <arpa/inet.h>
 #include <mutex>
 #include "parser.hpp"
-#include "message_2.hpp"
+#include "message.hpp"
 #include <set>
 #include <unordered_set>
 #include <tuple>
 #include <unordered_map>
+#include <map>
 
 /*
 Idea is to create an infrastructure for a basic UDP socket that can send and receive messages.
@@ -38,30 +39,29 @@ class UDPSocket {
     private:
     // assignable:
         Parser::Host localhost;
-        Parser::Host destination;
-
         std::unordered_map<unsigned long, Parser::Host> destiantions;
-
         int sockfd; // socket file descriptor
         unsigned long msg_id;
-
         std::mutex logs_lock;
         std::set<std::string> logs_set;
         std::mutex message_queue_lock;
         
         std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
-        std::unordered_map<std::string, unsigned int> pending;
         std::unordered_map<unsigned long, std::set<unsigned int>> message_queue;
 
         std::unordered_map<unsigned long, std::set<Msg_Convoy>> message_queue_upgrade;
+        
+        // original sender -> Msg -> set(processes that have seen this message)
+        std::map<unsigned long, std::map<Msg_Convoy, std::set<unsigned long>>> pending;
+        std::set<Msg_Convoy> delivered_messages;
 
         int setup_socket(Parser::Host host);
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
+
+
         void send_message();
+        void send_message_upgrade();
+
         void receive_message();
-        std::vector<unsigned int> message_convoy_parser(Msg_Convoy);
-
-        // pritners
-        // void msg_convoy_print(Msg_convoy);
-
+        void receive_message_upgrade();
 };
