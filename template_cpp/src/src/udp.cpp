@@ -59,11 +59,15 @@ void UDPSocket::create() {
 // Setting private parameters of the UDPSocket class.
 UDPSocket& UDPSocket::operator=(const UDPSocket & other) {
     this->localhost = other.localhost;
+    this->destiantions = other.destiantions;
     this->sockfd = other.sockfd;
     this->msg_id = other.msg_id;
     this->received_messages_sender_set = other.received_messages_sender_set;
     this->logs_set = other.logs_set;
     this->message_queue = other.message_queue;
+    this->message_queue_upgrade = other.message_queue_upgrade;
+    this->pending = other.pending;
+    this->delivered_messages = other.delivered_messages;
     return *this;
 }
 
@@ -110,10 +114,10 @@ void UDPSocket::enque_upgrade(unsigned int msg) {
 
     for (unsigned int i = 0; i<=msg; i++) {
         if ( (i % 8 == 0 && i != 0) || (i == msg) ) { // need to create a struct and enque it!
-            // 2. add to set for every process
+            // 1. add to set for every process
             for (auto& [key, value] : message_queue_upgrade) {
 
-                // 1. create the Msg struct
+                // 2. create the Msg struct
                 struct Msg_Convoy msg_convoy = {
                     this->localhost,
                     this->localhost.id,
@@ -388,7 +392,7 @@ int UDPSocket::setup_socket(Parser::Host host) {
     return sockfd;
 }
 
-std::vector<std::string> UDPSocket::get_logs_2() {
+std::vector<std::string> UDPSocket:() {
     std::vector<std::string> res;
     for (auto elem : this->logs_set) {
         res.push_back(elem);
