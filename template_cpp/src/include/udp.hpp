@@ -5,10 +5,13 @@
 #include <mutex>
 #include "parser.hpp"
 #include "message.hpp"
-#include "message_2.hpp"
 #include <set>
+#include <unordered_set>
 #include <tuple>
 #include <unordered_map>
+#include <map>
+#include <iostream>
+#include <fstream>
 
 /*
 Idea is to create an infrastructure for a basic UDP socket that can send and receive messages.
@@ -30,39 +33,54 @@ class UDPSocket {
 
         void create();
         void enque(Parser::Host dest, unsigned int msg);
+        void enque_upgrade(unsigned int msg);
 
-        std::vector<std::string> get_logs_2();
+        std::string get_logs();
         UDPSocket& operator=(const UDPSocket & other);
+
+        void sender_to_logs_close(std::ofstream& outFile);
+        void receiver_to_logs_close(std::ofstream& outFile);
+        // std::ofstream sender_logs;
+        // std::ofstream receiver_logs;
 
     private:
     // assignable:
         Parser::Host localhost;
-        Parser::Host destination;
-
         std::unordered_map<unsigned long, Parser::Host> destiantions;
-
         int sockfd; // socket file descriptor
         unsigned long msg_id;
-
-        std::set<std::string> logs_set;
-        std::vector<unsigned int> message_queue;
-        std::mutex message_queue_lock;
         std::mutex logs_lock;
-
-        std::unordered_map<unsigned long, std::set<unsigned int>> message_queue_deluxe;
-
+        std::set<std::string> logs_set;
+        std::mutex message_queue_lock;
+        
+        
         std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
 
-        std::unordered_map<std::string, unsigned int> pending;
+        std::unordered_map<unsigned long, std::set<Msg_Convoy>> message_queue_upgrade;
+
+        // original sender + message id -> set([processes that have seen it])
+        std::map<std::string, std::set<unsigned long>> pending_2;
+
+        std::set<std::string> drop_message_2;
+        std::set<std::string> delivered_messages;
 
         int setup_socket(Parser::Host host);
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
 
-        void send_message_deluxe();
 
-        void receive_message_deluxe();
+        void send_message();
+        void send_message_upgrade();
 
+        void receive_message();
+        void receive_message_upgrade();
 
+        void deliver_to_logs(Msg_Convoy msg_convoy);
 
-        std::vector<unsigned int> message_convoy_parser(Msg_Convoy);
+        std::ofstream sender_to_logs_open();
+        void sender_to_logs_write(std::ofstream& outFile, Msg_Convoy message_convoy);
+        
+
+        std::ofstream receiver_to_logs_open();
+        void receiver_to_logs_write(std::ofstream& outFile, Msg_Convoy message_convoy);
+        
 };
