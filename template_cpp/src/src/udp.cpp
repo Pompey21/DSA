@@ -163,77 +163,61 @@ void UDPSocket::receive_message_upgrade() {
             throw std::runtime_error("Receive failed");
         }
 
-        else {
-            if (message_convoy.is_ack && drop_message.find(message_convoy) == drop_message.end()) {
-                // need to parse the message => remove from my queues
-                std::cout << "\n" << std::endl;
-                std::cout << "Received Ack" << std::endl;
-
-                if (message_convoy.is_relay) {
-                    std::string message_group_identifier = std::to_string(message_convoy.original_sender) + "_" + std::to_string(message_convoy.msg_id);
-                    if (pending_2[message_group_identifier].find(message_convoy.sender.id) == pending_2[message_group_identifier].end()) {
-                        pending_2[message_group_identifier].insert(message_convoy.sender.id);
-
-                        // check if I have enough ACKS => deliver
-                        std::cout << "what is the size of the half? " << this->destiantions.size()/2 << std::endl;
-                        if (pending_2[message_group_identifier].size() >= this->destiantions.size()/2) {
-                            deliver_to_logs(message_convoy);
-                        }
-                    }
-                }
-
-                drop_message.insert(message_convoy);
-
-                std::cout << "the size of queue before removal : " << message_queue_upgrade[message_convoy.sender.id].size() << std::endl;
+        std::string message_group_identifier = std::to_string(message_convoy.original_sender) + "_" + std::to_string(message_convoy.msg_id);
+        if (this->drop_message_2.find(message_group_identifier) == this->drop_message_2.end()) {
+            if (message_convoy.is_ack) {
+                Msg_Convoy copied_message_convoy = message_convoy;
                 message_queue_lock.lock();
-                // remove message from the queue for which I received the ack => queue of that given process
-                // must switch receiver & sender
                 Parser::Host temp_addr = message_convoy.receiver;
-                message_convoy.receiver = message_convoy.sender;
-                message_convoy.sender = temp_addr;
-
-                message_queue_upgrade[message_convoy.receiver.id].erase(message_convoy);
+                copied_message_convoy.receiver = copied_message_convoy.sender;
+                copied_message_convoy.sender = temp_addr;
+                message_queue_upgrade[copied_message_convoy.receiver.id].erase(copied_message_convoy);
                 message_queue_lock.unlock();
-                std::cout << "the size of queue after removal : " << message_queue_upgrade[message_convoy.sender.id].size() << std::endl;
-                std::cout << "\n" << std::endl;
             }
 
             else {
-                // std::cout << "Received a"
-                // if we have not received it yet, then we need to save it
-                std::string message_group_identifier = std::to_string(message_convoy.original_sender) + "_" + std::to_string(message_convoy.msg_id);
-                if (pending_2.find(message_group_identifier) == pending_2.end()) {
-                    pending_2[message_group_identifier].insert({message_convoy.sender.id});
+                auto it = pending_2.find(message_group_identifier);
+                if (it == pending_2.end()) {
+                    // The key is not present, insert a new entry with an empty set
+                    pending_2[message_group_identifier] = std::set<long unsigned int>();
+                }
+                // Now you can safely insert into the set associated with the key
+                pending_2[message_group_identifier].insert(message_convoy.sender.id);
 
-                    // 2. enque it to be sent to all other processes
-                    Msg_Convoy copied_message_convoy = message_convoy;
-                    // for (const auto& [id, dest] : this->destiantions) {
-                    //     if (id != copied_message_convoy.original_sender && id != copied_message_convoy.sender.id && id != this->localhost.id) {
-                    //         copied_message_convoy.sender = this->localhost;
-                    //         copied_message_convoy.receiver = dest;
-                    //         copied_message_convoy.is_relay = true;
+                // 2. Broadcast further
+                Msg_Convoy copied_message_convoy = message_convoy;
+                for (const auto& [id, dest] : this->destiantions) {
+                    if (id != copied_message_convoy.original_sender && 
+                        id != copied_message_convoy.sender.id && 
+                        id != this->localhost.id) 
+                        {
+                        copied_message_convoy.sender = this->localhost;
+                        copied_message_convoy.receiver = dest;
+                        copied_message_convoy.is_relay = true;
 
-                    //         message_queue_lock.lock();
-                    //         message_queue_upgrade[id].insert(copied_message_convoy);
-                    //         message_queue_lock.unlock();
-                    //     }
-                    // }
-                } else {
-                    pending_2[message_group_identifier].insert(message_convoy.sender.id);
+                        message_queue_lock.lock();
+                        message_queue_upgrade[id].insert(copied_message_convoy);
+                        message_queue_lock.unlock();
+                    }
                 }
 
-                
-                
-                // send the Ack back to sender
-                message_convoy.is_ack = true;
-                struct sockaddr_in destaddr = this->set_up_destination_address(message_convoy.sender);
-                Parser::Host tempAddr = message_convoy.sender;
-                message_convoy.sender = this->localhost;
-                message_convoy.receiver = tempAddr;
-
-                sendto(this->sockfd, &message_convoy, sizeof(message_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
+                // 3. Check if enough processes
+                if (pending_2[message_group_identifier].size() >= this->destiantions.size()/2) {
+                    deliver_to_logs(message_convoy);
+                }
             }
-        }
+
+            drop_message_2.insert(message_group_identifier);
+        }                
+                
+        // send the Ack back to sender
+        message_convoy.is_ack = true;
+        struct sockaddr_in destaddr = this->set_up_destination_address(message_convoy.sender);
+        Parser::Host tempAddr = message_convoy.sender;
+        message_convoy.sender = this->localhost;
+        message_convoy.receiver = tempAddr;
+
+        sendto(this->sockfd, &message_convoy, sizeof(message_convoy), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
     }    
 }
 

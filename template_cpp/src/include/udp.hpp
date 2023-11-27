@@ -54,6 +54,7 @@ class UDPSocket {
         std::map<std::string, std::set<unsigned long>> pending_2;
 
         std::set<Msg_Convoy> drop_message;
+        std::set<std::string> drop_message_2;
         std::set<std::string> delivered_messages;
 
         int setup_socket(Parser::Host host);
