@@ -173,12 +173,12 @@ void UDPSocket::receive_message_upgrade() {
                     std::string message_group_identifier = std::to_string(message_convoy.original_sender) + "_" + std::to_string(message_convoy.msg_id);
                     if (pending_2[message_group_identifier].find(message_convoy.sender.id) == pending_2[message_group_identifier].end()) {
                         pending_2[message_group_identifier].insert(message_convoy.sender.id);
-                    }
 
-                    // check if I have enough ACKS => deliver
-                    std::cout << "what is the size of the half? " << this->destiantions.size()/2 << std::endl;
-                    if (pending_2[message_group_identifier].size() >= this->destiantions.size()/2) {
-                        deliver_to_logs(message_convoy);
+                        // check if I have enough ACKS => deliver
+                        std::cout << "what is the size of the half? " << this->destiantions.size()/2 << std::endl;
+                        if (pending_2[message_group_identifier].size() >= this->destiantions.size()/2) {
+                            deliver_to_logs(message_convoy);
+                        }
                     }
                 }
 
@@ -207,17 +207,17 @@ void UDPSocket::receive_message_upgrade() {
 
                     // 2. enque it to be sent to all other processes
                     Msg_Convoy copied_message_convoy = message_convoy;
-                    for (const auto& [id, dest] : this->destiantions) {
-                        if (id != copied_message_convoy.original_sender && id != copied_message_convoy.sender.id && id != this->localhost.id) {
-                            copied_message_convoy.sender = this->localhost;
-                            copied_message_convoy.receiver = dest;
-                            copied_message_convoy.is_relay = true;
+                    // for (const auto& [id, dest] : this->destiantions) {
+                    //     if (id != copied_message_convoy.original_sender && id != copied_message_convoy.sender.id && id != this->localhost.id) {
+                    //         copied_message_convoy.sender = this->localhost;
+                    //         copied_message_convoy.receiver = dest;
+                    //         copied_message_convoy.is_relay = true;
 
-                            message_queue_lock.lock();
-                            message_queue_upgrade[id].insert(copied_message_convoy);
-                            message_queue_lock.unlock();
-                        }
-                    }
+                    //         message_queue_lock.lock();
+                    //         message_queue_upgrade[id].insert(copied_message_convoy);
+                    //         message_queue_lock.unlock();
+                    //     }
+                    // }
                 } else {
                     pending_2[message_group_identifier].insert(message_convoy.sender.id);
                 }
