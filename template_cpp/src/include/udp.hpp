@@ -33,7 +33,7 @@ class UDPSocket {
         void enque(Parser::Host dest, unsigned int msg);
         void enque_upgrade(unsigned int msg);
 
-        std::vector<std::string> get_logs();
+        std::string get_logs();
         UDPSocket& operator=(const UDPSocket & other);
 
     private:
@@ -47,13 +47,14 @@ class UDPSocket {
         std::mutex message_queue_lock;
         
         std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
-        std::unordered_map<unsigned long, std::set<unsigned int>> message_queue;
 
         std::unordered_map<unsigned long, std::set<Msg_Convoy>> message_queue_upgrade;
-        
-        // original sender -> Msg -> set(processes that have seen this message)
-        std::map<unsigned long, std::map<Msg_Convoy, std::set<unsigned long>>> pending;
-        std::set<Msg_Convoy> delivered_messages;
+
+        // original sender + message id -> set([processes that have seen it])
+        std::map<std::string, std::set<unsigned long>> pending_2;
+
+        std::set<Msg_Convoy> drop_message;
+        std::set<std::string> delivered_messages;
 
         int setup_socket(Parser::Host host);
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
@@ -64,4 +65,8 @@ class UDPSocket {
 
         void receive_message();
         void receive_message_upgrade();
+
+        void deliver_to_logs(Msg_Convoy msg_convoy);
+
+        // void 
 };

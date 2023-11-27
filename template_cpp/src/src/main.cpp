@@ -21,11 +21,8 @@ static void stop(int) {
   // write/flush output file if necessary
   std::cout << "Writing output.\n";
 
-  std::cout << "The size of my logs: " << udpSocket->get_logs().size() << std::endl;
-
-  for(auto const &output: udpSocket->get_logs()){
-    outputFile << output << std::endl;
-  }
+  std::string res = udpSocket->get_logs();
+  outputFile << res << std::endl;
   outputFile.flush();
   outputFile.close();
 
