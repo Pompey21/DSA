@@ -21,10 +21,17 @@ static void stop(int) {
   // write/flush output file if necessary
   std::cout << "Writing output.\n";
 
+  // udpSocket->sender_to_logs_close(udpSocket->sender_logs);
+  // udpSocket->receiver_to_logs_close(udpSocket->receiver_logs);
+
   std::string res = udpSocket->get_logs();
+  std::cout << "This is the output log::::::: " << std::endl;
+  std::cout << res << std::endl;
   outputFile << res << std::endl;
   outputFile.flush();
   outputFile.close();
+
+  
 
   // exit directly from signal handler
   exit(0);

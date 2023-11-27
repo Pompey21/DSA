@@ -10,6 +10,8 @@
 #include <tuple>
 #include <unordered_map>
 #include <map>
+#include <iostream>
+#include <fstream>
 
 /*
 Idea is to create an infrastructure for a basic UDP socket that can send and receive messages.
@@ -36,6 +38,11 @@ class UDPSocket {
         std::string get_logs();
         UDPSocket& operator=(const UDPSocket & other);
 
+        void sender_to_logs_close(std::ofstream& outFile);
+        void receiver_to_logs_close(std::ofstream& outFile);
+        // std::ofstream sender_logs;
+        // std::ofstream receiver_logs;
+
     private:
     // assignable:
         Parser::Host localhost;
@@ -46,6 +53,7 @@ class UDPSocket {
         std::set<std::string> logs_set;
         std::mutex message_queue_lock;
         
+        
         std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
 
         std::unordered_map<unsigned long, std::set<Msg_Convoy>> message_queue_upgrade;
@@ -53,7 +61,6 @@ class UDPSocket {
         // original sender + message id -> set([processes that have seen it])
         std::map<std::string, std::set<unsigned long>> pending_2;
 
-        std::set<Msg_Convoy> drop_message;
         std::set<std::string> drop_message_2;
         std::set<std::string> delivered_messages;
 
@@ -69,5 +76,11 @@ class UDPSocket {
 
         void deliver_to_logs(Msg_Convoy msg_convoy);
 
-        // void 
+        std::ofstream sender_to_logs_open();
+        void sender_to_logs_write(std::ofstream& outFile, Msg_Convoy message_convoy);
+        
+
+        std::ofstream receiver_to_logs_open();
+        void receiver_to_logs_write(std::ofstream& outFile, Msg_Convoy message_convoy);
+        
 };

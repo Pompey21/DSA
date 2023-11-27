@@ -39,6 +39,9 @@ UDPSocket::UDPSocket(Parser::Host localhost, Parser parser) {
         Parser::Host host_og = host;
         this->destiantions[host.id] = host;
     }
+
+    // this->sender_logs = this->sender_to_logs_open();
+    // this->receiver_logs = this->receiver_to_logs_open();
 }
 
 // Creating two threads per socket, one for sending and one for receiving messages.
@@ -64,7 +67,6 @@ UDPSocket& UDPSocket::operator=(const UDPSocket & other) {
     this->logs_set = other.logs_set;
     this->message_queue_upgrade = other.message_queue_upgrade;
     this->pending_2 = other.pending_2;
-    this->drop_message = other.drop_message;
     return *this;
 }
 
@@ -112,13 +114,11 @@ void UDPSocket::enque_upgrade(unsigned int msg) {
                     false,
                     false
                 };
-
-                if (key != this->localhost.id) {
-                    value.insert(msg_convoy);
-                    this->msg_id++;
-                    msg_convoy.msg_convoy_print();
-                }
+                value.insert(msg_convoy);
+                msg_convoy.msg_convoy_print();
+                
             }
+            this->msg_id++;
             payload.fill(0);
         }
     }
@@ -138,15 +138,15 @@ void UDPSocket::send_message_upgrade() {
                 std::set<Msg_Convoy> copied_message_queue = value;
                 message_queue_lock.unlock();
 
-                std::cout << "\n" << std::endl;
-                std::cout << "Sending for: " << key << std::endl;
-                std::cout << " the message queue size : " << copied_message_queue.size() << std::endl;
+                // std::cout << "\n" << std::endl;
+                // std::cout << "Sending for: " << key << std::endl;
+                // std::cout << " the message queue size : " << copied_message_queue.size() << std::endl;
 
                 for (Msg_Convoy message : copied_message_queue) {
                     struct sockaddr_in destaddr = this->set_up_destination_address(message.receiver);
                     sendto(this->sockfd, &message, sizeof(message), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
 
-                    std::cout << "OG sender: " << message.original_sender << std::endl;
+                    // std::cout << "OG sender: " << message.original_sender << std::endl;
                     std::this_thread::sleep_for(std::chrono::seconds(4));
                 }
                 std::cout << "\n" << std::endl;
@@ -202,7 +202,9 @@ void UDPSocket::receive_message_upgrade() {
                 }
 
                 // 3. Check if enough processes
-                if (pending_2[message_group_identifier].size() >= this->destiantions.size()/2) {
+                if (pending_2[message_group_identifier].size() >= this->destiantions.size()/2 &&
+                    this->delivered_messages.find(message_group_identifier) == delivered_messages.end()) {
+                        std::cout << "message group identifier: " << message_group_identifier << std::endl;
                     deliver_to_logs(message_convoy);
                 }
             }
@@ -246,8 +248,9 @@ int UDPSocket::setup_socket(Parser::Host host) {
 std::string UDPSocket::get_logs() {
     std::string res;
     for (auto elem : this->logs_set) {
-        std::cout << elem << std::endl;
+        res = res + elem + "\n";
     }
+    std::cout << res << std::endl;
     return res;
 }
 
@@ -271,5 +274,48 @@ void UDPSocket::deliver_to_logs(Msg_Convoy message_convoy) {
             }
         }
         delivered_messages.insert(group_message_identifier);
+    }
+}
+
+
+std::ofstream UDPSocket::sender_to_logs_open() {
+    std::ofstream outFile;
+    outFile.open("sender.output", std::ios::trunc);
+    return outFile;
+}
+
+void UDPSocket::sender_to_logs_write(std::ofstream& outFile, Msg_Convoy message_convoy) {
+    if (outFile.is_open()) {
+        outFile << "Hello, World!" << std::endl;
+    } else {
+        std::cerr << "Error writing to file: File is not open." << std::endl;
+    }
+}
+
+void UDPSocket::sender_to_logs_close(std::ofstream& outFile) {
+    outFile.close();
+    if (outFile.fail()) {
+        std::cerr << "Error closing file: File could not be closed." << std::endl;
+    }
+}
+
+std::ofstream UDPSocket::receiver_to_logs_open() {
+    std::ofstream outFile;
+    outFile.open("receiver.output", std::ios::trunc);
+    return outFile;
+}
+
+void UDPSocket::receiver_to_logs_write(std::ofstream& outFile, Msg_Convoy message_convoy) {
+    if (outFile.is_open()) {
+        outFile << "Hello, World!" << std::endl;
+    } else {
+        std::cerr << "Error writing to file: File is not open." << std::endl;
+    }
+}
+
+void UDPSocket::receiver_to_logs_close(std::ofstream& outFile) {
+    outFile.close();
+    if (outFile.fail()) {
+        std::cerr << "Error closing file: File could not be closed." << std::endl;
     }
 }

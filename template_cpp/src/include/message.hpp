@@ -36,6 +36,7 @@ struct Msg_Convoy {
         std::cout << "Sender: " << this->sender.id << std::endl;
         std::cout << "The Original Sender: " << this->original_sender << std::endl;
         std::cout << "Receiver: " << this->receiver.id << std::endl;
+        std::cout << "Message Identifier: " << this->msg_id << std::endl;
 
         std::cout << "This is the payload: " << std::endl;
         for (unsigned int msg : this->payload) {
