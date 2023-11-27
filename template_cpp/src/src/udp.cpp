@@ -165,6 +165,7 @@ void UDPSocket::receive_message_upgrade() {
 
         std::string message_group_identifier = std::to_string(message_convoy.original_sender) + "_" + std::to_string(message_convoy.msg_id);
         if (this->drop_message_2.find(message_group_identifier) == this->drop_message_2.end()) {
+            std::cout << message_group_identifier << std::endl;
             if (message_convoy.is_ack) {
                 Msg_Convoy copied_message_convoy = message_convoy;
                 message_queue_lock.lock();
@@ -202,7 +203,7 @@ void UDPSocket::receive_message_upgrade() {
                 }
 
                 // 3. Check if enough processes
-                if (pending_2[message_group_identifier].size() >= this->destiantions.size()/2 &&
+                if (pending_2[message_group_identifier].size() > this->destiantions.size()/2 &&
                     this->delivered_messages.find(message_group_identifier) == delivered_messages.end()) {
                         std::cout << "message group identifier: " << message_group_identifier << std::endl;
                     deliver_to_logs(message_convoy);
