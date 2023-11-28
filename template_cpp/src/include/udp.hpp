@@ -32,8 +32,7 @@ class UDPSocket {
         UDPSocket(Parser::Host localhost, Parser parser); // constructor that takes a Parser::Host argument
 
         void create();
-        void enque(Parser::Host dest, unsigned int msg);
-        void enque_upgrade(unsigned int msg);
+        void enque(unsigned int msg);
 
         std::string get_logs();
         UDPSocket& operator=(const UDPSocket & other);
@@ -53,26 +52,18 @@ class UDPSocket {
         std::set<std::string> logs_set;
         std::mutex message_queue_lock;
         
-        
-        std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
-
-        std::unordered_map<unsigned long, std::set<Msg_Convoy>> message_queue_upgrade;
+        std::unordered_map<unsigned long, std::set<Msg_Convoy>> message_queue;
 
         // original sender + message id -> set([processes that have seen it])
-        std::map<std::string, std::set<unsigned long>> pending_2;
+        std::map<std::string, std::set<unsigned long>> pending;
 
-        std::set<std::string> drop_message_2;
         std::set<std::string> delivered_messages;
 
         int setup_socket(Parser::Host host);
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
 
-
         void send_message();
-        void send_message_upgrade();
-
         void receive_message();
-        void receive_message_upgrade();
 
         void deliver_to_logs(Msg_Convoy msg_convoy);
 
