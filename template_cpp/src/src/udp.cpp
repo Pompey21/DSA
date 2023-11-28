@@ -105,7 +105,6 @@ void UDPSocket::enque(unsigned int msg) {
                     this->destiantions[key],
                     this->msg_id,
                     payload,
-                    false,
                     false
                 };
                 value.insert(msg_convoy);
@@ -134,10 +133,10 @@ void UDPSocket::send_message() {
 
         for (const auto& [host_id, queued_messages] : this->message_queue) {
             // std::cout << "Sending messages .." << std::endl;
-            // for (auto& [id, host] : this->destiantions) {
-            //     std::cout << "Host: " << id << std::endl;
-            //     std::cout << "Length of the message queue: " << this->message_queue[id].size() << std::endl;
-            // } 
+            for (auto& [id, host] : this->destiantions) {
+                // std::cout << "Host: " << id << std::endl;
+                // std::cout << "Length of the message queue: " << this->message_queue[id].size() << std::endl;
+            } 
 
             if (queued_messages.size() > 0) {
                 message_queue_lock.lock();
@@ -149,7 +148,7 @@ void UDPSocket::send_message() {
                     sendto(this->sockfd, &message, sizeof(message), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
                 }
             }
-            // std::this_thread::sleep_for(std::chrono::seconds(4));
+            std::this_thread::sleep_for(std::chrono::seconds(4));
         }
     }
 }
@@ -164,22 +163,15 @@ void UDPSocket::receive_message() {
 
         std::string message_group_identifier = std::to_string(message_convoy.original_sender) + "_" + std::to_string(message_convoy.msg_id);
 
-        if (message_convoy.is_ack) {
-            Msg_Convoy copied_message_convoy = message_convoy;
-            message_queue_lock.lock();
-            Parser::Host temp_addr = message_convoy.receiver;
-            copied_message_convoy.receiver = copied_message_convoy.sender;
-            copied_message_convoy.sender = temp_addr;
-            message_queue[copied_message_convoy.receiver.id].erase(copied_message_convoy);
-            message_queue_lock.unlock();
-            // std::cout << "ACK" << std::endl;
-            // std::cout << message_group_identifier << std::endl;
-        }
+        if (message_convoy.is_ack) {}
 
         else {
+            std::cout << "Received message" << std::endl;
             if ((this->delivered_messages.find(message_group_identifier) == this->delivered_messages.end())) {
-                // std::cout << "Message" << std::endl;
-                // std::cout << message_group_identifier << std::endl;
+                std::cout << "Message" << std::endl;
+                std::cout << message_group_identifier << std::endl;
+                std::cout << message_convoy.sender.id << std::endl;
+
                 auto it = pending.find(message_group_identifier);
                 if (it == pending.end()) {
                     // The key is not present, insert a new entry with an empty set
@@ -199,13 +191,19 @@ void UDPSocket::receive_message() {
             // 2. Broadcast further
             Msg_Convoy copied_message_convoy = message_convoy;
             copied_message_convoy.sender = this->localhost;
-            copied_message_convoy.is_relay = true;
-            for (const auto& [id, dest] : this->destiantions) {
-                copied_message_convoy.receiver = dest;
+            for (const auto& [host_id, host_parser] : this->destiantions) {
+                copied_message_convoy.receiver = host_parser;
+
+                std::cout << "Message ID: " << copied_message_convoy.msg_id << std::endl;
+                std::cout << "Size of the queue before: " << this->message_queue[host_id].size() << std::endl;
 
                 this->message_queue_lock.lock();
-                this->message_queue[id].insert(copied_message_convoy);
+                this->message_queue[host_id].insert(copied_message_convoy);
                 this->message_queue_lock.unlock();
+
+                std::cout << "Size of the queue after: " << this->message_queue[host_id].size() << std::endl;
+
+                std::cout << "Hey" << std::endl;
             }
 
             // send the Ack back to sender

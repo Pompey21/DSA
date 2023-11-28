@@ -7,7 +7,6 @@ struct Msg_Convoy {
     unsigned long msg_id;
     std::array<unsigned int, 8> payload;
     bool is_ack;
-    bool is_relay;
     public:
     bool operator==( const Msg_Convoy& other ) {
         if (other.is_ack) 
@@ -23,15 +22,14 @@ struct Msg_Convoy {
                     receiver.port == other.receiver.port &&
                     msg_id == other.msg_id;
     }
-
-    friend bool operator<(const Msg_Convoy& l, const Msg_Convoy& r)
-    {
-        return std::tie(l.sender.id, l.receiver.id, l.msg_id, l.payload)
-             < std::tie(r.sender.id, r.receiver.id, r.msg_id, r.payload); // keep the same order
+    bool operator<(const Msg_Convoy& other) const {
+        std::string message_group_identifier = std::to_string(this->original_sender) + "_" + std::to_string(this->msg_id);
+        std::string message_group_identifier_other = std::to_string(other.original_sender) + "_" + std::to_string(other.msg_id);
+        return message_group_identifier < message_group_identifier_other;
     }
 
     void msg_convoy_print() {
-        std::cout << "-----------------------------------------" << std::endl;
+        std::cout << "\n-----------------------------------------" << std::endl;
         std::cout << "Sender: " << this->sender.id << std::endl;
         std::cout << "The Original Sender: " << this->original_sender << std::endl;
         std::cout << "Receiver: " << this->receiver.id << std::endl;
@@ -42,14 +40,10 @@ struct Msg_Convoy {
             std::cout << msg << std::endl;
         }
         
-        if (this->is_ack) {
-            std::cout << "This message is an acknowledgeement." << std::endl;
-        }
-
-        if (this->is_relay) {
-            std::cout << "This message is a relay." << std::endl;
-        }
-        std::cout << "-----------------------------------------" << std::endl;
+        // if (this->is_ack) {
+        //     std::cout << "This message is an acknowledgeement." << std::endl;
+        // }
+        std::cout << "-----------------------------------------\n" << std::endl;
     }
 };
 
