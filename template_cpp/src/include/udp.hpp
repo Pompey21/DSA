@@ -34,7 +34,9 @@ class UDPSocket {
         void create();
         void enque(unsigned int msg);
 
-        std::string get_logs();
+        std::ostringstream get_logs();
+        std::set<std::string> get_logs_2();
+
         UDPSocket& operator=(const UDPSocket & other);
 
     private:

@@ -90,10 +90,10 @@ void UDPSocket::enque(unsigned int msg) {
 
     for (unsigned int i = 1; i<=msg; i++) {
         payload[(i-1)%8] = i;
-        // std::string msg_prep = "b " + std::to_string(i);
-        // this->logs_lock.lock();
-        // this->logs_set.insert(msg_prep);
-        // this->logs_lock.unlock();
+        std::string msg_prep = "b " + std::to_string(i);
+        this->logs_lock.lock();
+        this->logs_set.insert(msg_prep);
+        this->logs_lock.unlock();
 
         if ( (i % 8 == 0 && i != 0) || (i == msg) ) { // need to create a struct and enque it!
             // 1. add to set for every process
@@ -235,13 +235,21 @@ int UDPSocket::setup_socket(Parser::Host host) {
     return sockfd;
 }
 
-std::string UDPSocket::get_logs() {
+std::ostringstream UDPSocket::get_logs() {
     std::string res;
+    std::ostringstream oss;
+
     for (auto elem : this->logs_set) {
         res = res + elem + "\n";
+        oss << elem << "\n";
     }
     std::cout << res.size() << std::endl;
-    return res;
+    return oss;
+}
+
+std::set<std::string> UDPSocket::get_logs_2() {
+    std::set<std::string> logs_set_copy = this->logs_set;
+    return logs_set_copy;
 }
 
 void UDPSocket::deliver_to_logs(Msg_Convoy message_convoy) {
