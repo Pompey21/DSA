@@ -24,7 +24,6 @@ struct Msg_Convoy {
                     msg_id == other.msg_id;
     }
 
-// doesn't really work yet
     friend bool operator<(const Msg_Convoy& l, const Msg_Convoy& r)
     {
         return std::tie(l.sender.id, l.receiver.id, l.msg_id, l.payload)

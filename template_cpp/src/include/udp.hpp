@@ -37,11 +37,6 @@ class UDPSocket {
         std::string get_logs();
         UDPSocket& operator=(const UDPSocket & other);
 
-        void sender_to_logs_close(std::ofstream& outFile);
-        void receiver_to_logs_close(std::ofstream& outFile);
-        // std::ofstream sender_logs;
-        // std::ofstream receiver_logs;
-
     private:
     // assignable:
         Parser::Host localhost;
@@ -52,6 +47,7 @@ class UDPSocket {
         std::set<std::string> logs_set;
         std::mutex message_queue_lock;
         
+        // process -> his queue of messages
         std::unordered_map<unsigned long, std::set<Msg_Convoy>> message_queue;
 
         // original sender + message id -> set([processes that have seen it])
@@ -65,13 +61,5 @@ class UDPSocket {
         void send_message();
         void receive_message();
 
-        void deliver_to_logs(Msg_Convoy msg_convoy);
-
-        std::ofstream sender_to_logs_open();
-        void sender_to_logs_write(std::ofstream& outFile, Msg_Convoy message_convoy);
-        
-
-        std::ofstream receiver_to_logs_open();
-        void receiver_to_logs_write(std::ofstream& outFile, Msg_Convoy message_convoy);
-        
+        void deliver_to_logs(Msg_Convoy msg_convoy);        
 };

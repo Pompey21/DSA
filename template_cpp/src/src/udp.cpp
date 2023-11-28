@@ -80,25 +80,20 @@ struct sockaddr_in UDPSocket::set_up_destination_address(Parser::Host dest) {
 
 void UDPSocket::enque(unsigned int msg) {
 
-    message_queue_lock.lock();
+    this->message_queue_lock.lock();
 
     for (auto& [id, host] : this->destiantions) {
-        // if (id != this->localhost.id) { // so we don't keep a queue for myself (as a process)
-            message_queue[host.id].insert({});
-        // }
+        this->message_queue[host.id].insert({});
     }
 
     std::array<unsigned int, 8> payload;
 
     for (unsigned int i = 1; i<=msg; i++) {
         payload[(i-1)%8] = i;
-        std::string msg_prep = "b " + std::to_string(i);
-        logs_lock.lock();
-        auto it = logs_set.find(msg_prep);
-        if (it == logs_set.end()) {
-            logs_set.insert(msg_prep);
-        }
-        logs_lock.unlock();
+        // std::string msg_prep = "b " + std::to_string(i);
+        // this->logs_lock.lock();
+        // this->logs_set.insert(msg_prep);
+        // this->logs_lock.unlock();
 
         if ( (i % 8 == 0 && i != 0) || (i == msg) ) { // need to create a struct and enque it!
             // 1. add to set for every process
@@ -137,12 +132,12 @@ void UDPSocket::send_message() {
     bool infinite_loop = true;
     while (infinite_loop) {
 
-        for (const auto& [host_id, queued_messages] : message_queue) {
-            std::cout << "Sending messages .." << std::endl;
-            for (auto& [id, host] : this->destiantions) {
-                std::cout << "Host: " << id << std::endl;
-                std::cout << "Length of the message queue: " << this->message_queue[id].size() << std::endl;
-            } 
+        for (const auto& [host_id, queued_messages] : this->message_queue) {
+            // std::cout << "Sending messages .." << std::endl;
+            // for (auto& [id, host] : this->destiantions) {
+            //     std::cout << "Host: " << id << std::endl;
+            //     std::cout << "Length of the message queue: " << this->message_queue[id].size() << std::endl;
+            // } 
 
             if (queued_messages.size() > 0) {
                 message_queue_lock.lock();
@@ -154,7 +149,7 @@ void UDPSocket::send_message() {
                     sendto(this->sockfd, &message, sizeof(message), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
                 }
             }
-            std::this_thread::sleep_for(std::chrono::seconds(4));
+            // std::this_thread::sleep_for(std::chrono::seconds(4));
         }
     }
 }
@@ -177,14 +172,14 @@ void UDPSocket::receive_message() {
             copied_message_convoy.sender = temp_addr;
             message_queue[copied_message_convoy.receiver.id].erase(copied_message_convoy);
             message_queue_lock.unlock();
-            std::cout << "ACK" << std::endl;
-            std::cout << message_group_identifier << std::endl;
+            // std::cout << "ACK" << std::endl;
+            // std::cout << message_group_identifier << std::endl;
         }
 
         else {
             if ((this->delivered_messages.find(message_group_identifier) == this->delivered_messages.end())) {
-                std::cout << "Message" << std::endl;
-                std::cout << message_group_identifier << std::endl;
+                // std::cout << "Message" << std::endl;
+                // std::cout << message_group_identifier << std::endl;
                 auto it = pending.find(message_group_identifier);
                 if (it == pending.end()) {
                     // The key is not present, insert a new entry with an empty set
@@ -208,9 +203,9 @@ void UDPSocket::receive_message() {
             for (const auto& [id, dest] : this->destiantions) {
                 copied_message_convoy.receiver = dest;
 
-                message_queue_lock.lock();
-                message_queue[id].insert(copied_message_convoy);
-                message_queue_lock.unlock();
+                this->message_queue_lock.lock();
+                this->message_queue[id].insert(copied_message_convoy);
+                this->message_queue_lock.unlock();
             }
 
             // send the Ack back to sender
@@ -247,7 +242,7 @@ std::string UDPSocket::get_logs() {
     for (auto elem : this->logs_set) {
         res = res + elem + "\n";
     }
-    std::cout << res << std::endl;
+    std::cout << res.size() << std::endl;
     return res;
 }
 
@@ -257,15 +252,10 @@ void UDPSocket::deliver_to_logs(Msg_Convoy message_convoy) {
     // write it to the logs file
     for (unsigned int i = 0; i < message_convoy.payload.size(); i++) {
         if (message_convoy.payload[i] != 0) {
-            std::ostringstream oss;
-            oss << "d " << message_convoy.original_sender << " " << message_convoy.payload[i];
-            logs_lock.lock();
             std::string msg_prep = "d " + std::to_string(message_convoy.original_sender) + " " + std::to_string(message_convoy.payload[i]);
             std::cout << "This is the message: " << msg_prep << std::endl;
-            auto it = logs_set.find(msg_prep);
-            if (it == logs_set.end()) {
-                logs_set.insert(msg_prep);
-            }
+            logs_lock.lock();
+            logs_set.insert(msg_prep);
             logs_lock.unlock();
         }
     }

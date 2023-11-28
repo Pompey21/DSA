@@ -22,11 +22,14 @@ static void stop(int) {
   std::cout << "Writing output.\n";
 
   std::string res = udpSocket->get_logs();
+
+  std::cout << res.size() << std::endl;
+
   outputFile << res << std::endl;
   outputFile.flush();
   outputFile.close();
 
-  
+  std::cout << res.size() << std::endl;
 
   // exit directly from signal handler
   exit(0);
