@@ -1,13 +1,13 @@
 #include "parser.hpp"
 
-struct Msg_Convoy {
+struct Msg {
     Parser::Host sender;
     Parser::Host receiver;
     unsigned long msg_id;
-    std::array<unsigned int, 8> payload;
+    unsigned int content;
     bool is_ack;
     public:
-    bool operator==( const Msg_Convoy& other ) {
+    bool operator==( const Msg& other ) {
         if (other.is_ack) 
             return sender.ip == other.receiver.ip &&
                     sender.port == other.receiver.port &&
