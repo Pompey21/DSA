@@ -21,7 +21,7 @@ static void stop(int) {
   // write/flush output file if necessary
   std::cout << "Writing output.\n";
 
-  std::set<std::string> res = udpSocket->get_logs_2();
+  std::vector<std::string> res = udpSocket->get_logs_3();
   // outputFile << res << std::endl;
   for (auto elem : res) {
     outputFile << elem << std::endl;

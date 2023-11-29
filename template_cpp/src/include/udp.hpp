@@ -36,6 +36,7 @@ class UDPSocket {
 
         std::ostringstream get_logs();
         std::set<std::string> get_logs_2();
+        std::vector<std::string> get_logs_3();
 
         UDPSocket& operator=(const UDPSocket & other);
 
@@ -47,6 +48,7 @@ class UDPSocket {
         unsigned long msg_id;
         std::mutex logs_lock;
         std::set<std::string> logs_set;
+        std::vector<std::string> logs_vector;
         std::mutex message_queue_lock;
         
         // process -> his queue of messages
@@ -56,6 +58,7 @@ class UDPSocket {
         std::map<std::string, std::set<unsigned long>> pending;
 
         std::set<std::string> delivered_messages;
+        std::map<std::string, Msg_Convoy> messages_prepared_for_delivery;
 
         // infrastructure
         int setup_socket(Parser::Host host);
@@ -64,5 +67,6 @@ class UDPSocket {
         // modified methods
         void send_message();
         void receive_message();
-        void deliver_to_logs(Msg_Convoy msg_convoy);        
+        void deliver_to_logs(Msg_Convoy msg_convoy);
+        std::tuple<std::string, std::string> split_message_identifier(std::string message_group_identifier);     
 };
