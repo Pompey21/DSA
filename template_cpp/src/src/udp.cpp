@@ -4,6 +4,7 @@
 
 #include "udp.hpp"
 
+extern std::ofstream outputFile;
 /*
 // References and Resources: 
 https://www.geeksforgeeks.org/udp-server-client-implementation-c/
@@ -118,7 +119,7 @@ void UDPSocket::enque(unsigned int msg) {
     message_queue_lock.unlock();
 
     std::cout << "Enquing .." << std::endl;
-    for (auto& [id, host] : this->destiantions) {
+    for (const auto& [id, host] : this->destiantions) {
         std::cout << "Host: " << id << std::endl;
         std::cout << "Length of the message queue: " << this->message_queue[id].size() << std::endl;
     }
@@ -132,18 +133,12 @@ void UDPSocket::send_message() {
     while (infinite_loop) {
 
         for (const auto& [host_id, queued_messages] : this->message_queue) {
-            // std::cout << "Sending messages .." << std::endl;
-            for (auto& [id, host] : this->destiantions) {
-                // std::cout << "Host: " << id << std::endl;
-                // std::cout << "Length of the message queue: " << this->message_queue[id].size() << std::endl;
-            } 
-
             if (queued_messages.size() > 0) {
                 message_queue_lock.lock();
                 std::set<Msg_Convoy> copied_message_queue = queued_messages;
                 message_queue_lock.unlock();
 
-                for (Msg_Convoy message : copied_message_queue) {
+                for (const Msg_Convoy& message : copied_message_queue) {
                     struct sockaddr_in destaddr = this->set_up_destination_address(message.receiver);
                     sendto(this->sockfd, &message, sizeof(message), 0, reinterpret_cast<const sockaddr *>(&destaddr), sizeof(destaddr));
                 }
@@ -163,7 +158,19 @@ void UDPSocket::receive_message() {
 
         std::string message_group_identifier = std::to_string(message_convoy.original_sender) + "_" + std::to_string(message_convoy.msg_id);
 
-        if (message_convoy.is_ack) {}
+        if (message_convoy.is_ack) {
+            Msg_Convoy copied_message_convoy = message_convoy;
+
+            std::cout << "Before receiving ack, queue length: " << message_queue[copied_message_convoy.receiver.id].size() << std::endl;
+            message_queue_lock.lock();
+            Parser::Host temp_addr = message_convoy.receiver;
+            copied_message_convoy.receiver = copied_message_convoy.sender;
+            copied_message_convoy.sender = temp_addr;
+            message_queue[copied_message_convoy.receiver.id].erase(copied_message_convoy);
+            message_queue_lock.unlock();
+
+            std::cout << "After receiving ack, queue length: " << message_queue[copied_message_convoy.receiver.id].size() << std::endl;
+        }
 
         else {
             std::cout << "Received message" << std::endl;
