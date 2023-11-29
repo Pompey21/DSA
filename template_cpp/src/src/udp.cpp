@@ -40,9 +40,6 @@ UDPSocket::UDPSocket(Parser::Host localhost, Parser parser) {
         Parser::Host host_og = host;
         this->destiantions[host.id] = host;
     }
-
-    // this->sender_logs = this->sender_to_logs_open();
-    // this->receiver_logs = this->receiver_to_logs_open();
 }
 
 // Creating two threads per socket, one for sending and one for receiving messages.
@@ -161,7 +158,7 @@ void UDPSocket::receive_message() {
         if (message_convoy.is_ack) {
             Msg_Convoy copied_message_convoy = message_convoy;
 
-            std::cout << "Before receiving ack, queue length: " << message_queue[copied_message_convoy.receiver.id].size() << std::endl;
+            // std::cout << "Before receiving ack, queue length: " << message_queue[copied_message_convoy.receiver.id].size() << std::endl;
             message_queue_lock.lock();
             Parser::Host temp_addr = message_convoy.receiver;
             copied_message_convoy.receiver = copied_message_convoy.sender;
@@ -169,11 +166,11 @@ void UDPSocket::receive_message() {
             message_queue[copied_message_convoy.receiver.id].erase(copied_message_convoy);
             message_queue_lock.unlock();
 
-            std::cout << "After receiving ack, queue length: " << message_queue[copied_message_convoy.receiver.id].size() << std::endl;
+            // std::cout << "After receiving ack, queue length: " << message_queue[copied_message_convoy.receiver.id].size() << std::endl;
         }
 
         else {
-            std::cout << "Received message" << std::endl;
+            // std::cout << "Received message" << std::endl;
             if ((this->delivered_messages.find(message_group_identifier) == this->delivered_messages.end())) {
                 std::cout << "Message" << std::endl;
                 std::cout << message_group_identifier << std::endl;
@@ -206,19 +203,18 @@ void UDPSocket::receive_message() {
                     if (host_id != this->localhost.id) {
                         copied_message_convoy.receiver = host_parser;
 
-                    std::cout << "Message ID: " << message_group_identifier << std::endl;
-                    std::cout << "Size of the queue before: " << this->message_queue[host_id].size() << std::endl;
+                    // std::cout << "Message ID: " << message_group_identifier << std::endl;
+                    // std::cout << "Size of the queue before: " << this->message_queue[host_id].size() << std::endl;
 
                     this->message_queue_lock.lock();
                     this->message_queue[host_id].insert(copied_message_convoy);
                     this->message_queue_lock.unlock();
 
-                    std::cout << "Size of the queue after: " << this->message_queue[host_id].size() << std::endl;
+                    // std::cout << "Size of the queue after: " << this->message_queue[host_id].size() << std::endl;
                     } 
                 }
             }
             
-
             // send the Ack back to sender
             message_convoy.is_ack = true;
             struct sockaddr_in destaddr = this->set_up_destination_address(message_convoy.sender);
