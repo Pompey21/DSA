@@ -194,7 +194,7 @@ void UDPSocket::receive_message() {
             for (const auto& [host_id, host_parser] : this->destiantions) {
                 copied_message_convoy.receiver = host_parser;
 
-                std::cout << "Message ID: " << copied_message_convoy.msg_id << std::endl;
+                std::cout << "Message ID: " << message_group_identifier << std::endl;
                 std::cout << "Size of the queue before: " << this->message_queue[host_id].size() << std::endl;
 
                 this->message_queue_lock.lock();
@@ -202,8 +202,6 @@ void UDPSocket::receive_message() {
                 this->message_queue_lock.unlock();
 
                 std::cout << "Size of the queue after: " << this->message_queue[host_id].size() << std::endl;
-
-                std::cout << "Hey" << std::endl;
             }
 
             // send the Ack back to sender

@@ -57,11 +57,12 @@ class UDPSocket {
 
         std::set<std::string> delivered_messages;
 
+        // infrastructure
         int setup_socket(Parser::Host host);
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
 
+        // modified methods
         void send_message();
         void receive_message();
-
         void deliver_to_logs(Msg_Convoy msg_convoy);        
 };
