@@ -191,7 +191,11 @@ void UDPSocket::receive_message() {
                 if (pending[message_group_identifier].size() > this->destiantions.size()/2 ) 
                 {
                     std::cout << "delivering ... " << std::endl;
-                    // std::cout << pending[message_group_identifier] << std::endl;
+                    std::string seen_by_processes;
+                    for (const auto& process : pending[message_group_identifier]) {
+                        seen_by_processes = seen_by_processes + std::to_string(process);
+                    }
+                    std::cout << seen_by_processes << std::endl;
                     deliver_to_logs(message_convoy);
                 }
 
@@ -199,7 +203,8 @@ void UDPSocket::receive_message() {
                 Msg_Convoy copied_message_convoy = message_convoy;
                 copied_message_convoy.sender = this->localhost;
                 for (const auto& [host_id, host_parser] : this->destiantions) {
-                    copied_message_convoy.receiver = host_parser;
+                    if (host_id != this->localhost.id) {
+                        copied_message_convoy.receiver = host_parser;
 
                     std::cout << "Message ID: " << message_group_identifier << std::endl;
                     std::cout << "Size of the queue before: " << this->message_queue[host_id].size() << std::endl;
@@ -209,6 +214,7 @@ void UDPSocket::receive_message() {
                     this->message_queue_lock.unlock();
 
                     std::cout << "Size of the queue after: " << this->message_queue[host_id].size() << std::endl;
+                    } 
                 }
             }
             
