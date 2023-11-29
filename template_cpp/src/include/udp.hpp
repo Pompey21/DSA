@@ -32,16 +32,12 @@ class UDPSocket {
         UDPSocket(Parser::Host localhost, Parser parser); // constructor that takes a Parser::Host argument
 
         void create();
-        void enque(Parser::Host dest, unsigned int msg);
-        void enque_upgrade(unsigned int msg);
+        void enque(unsigned int msg);
 
-        std::string get_logs();
+        std::ostringstream get_logs();
+        std::set<std::string> get_logs_2();
+
         UDPSocket& operator=(const UDPSocket & other);
-
-        void sender_to_logs_close(std::ofstream& outFile);
-        void receiver_to_logs_close(std::ofstream& outFile);
-        // std::ofstream sender_logs;
-        // std::ofstream receiver_logs;
 
     private:
     // assignable:
@@ -53,34 +49,20 @@ class UDPSocket {
         std::set<std::string> logs_set;
         std::mutex message_queue_lock;
         
-        
-        std::set<std::tuple<unsigned int, unsigned int>> received_messages_sender_set;
-
-        std::unordered_map<unsigned long, std::set<Msg_Convoy>> message_queue_upgrade;
+        // process -> his queue of messages
+        std::unordered_map<unsigned long, std::set<Msg_Convoy>> message_queue;
 
         // original sender + message id -> set([processes that have seen it])
-        std::map<std::string, std::set<unsigned long>> pending_2;
+        std::map<std::string, std::set<unsigned long>> pending;
 
-        std::set<std::string> drop_message_2;
         std::set<std::string> delivered_messages;
 
+        // infrastructure
         int setup_socket(Parser::Host host);
         struct sockaddr_in set_up_destination_address(Parser::Host dest);
 
-
+        // modified methods
         void send_message();
-        void send_message_upgrade();
-
         void receive_message();
-        void receive_message_upgrade();
-
-        void deliver_to_logs(Msg_Convoy msg_convoy);
-
-        std::ofstream sender_to_logs_open();
-        void sender_to_logs_write(std::ofstream& outFile, Msg_Convoy message_convoy);
-        
-
-        std::ofstream receiver_to_logs_open();
-        void receiver_to_logs_write(std::ofstream& outFile, Msg_Convoy message_convoy);
-        
+        void deliver_to_logs(Msg_Convoy msg_convoy);        
 };

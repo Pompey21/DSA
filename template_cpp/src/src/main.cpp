@@ -21,17 +21,16 @@ static void stop(int) {
   // write/flush output file if necessary
   std::cout << "Writing output.\n";
 
-  // udpSocket->sender_to_logs_close(udpSocket->sender_logs);
-  // udpSocket->receiver_to_logs_close(udpSocket->receiver_logs);
-
-  std::string res = udpSocket->get_logs();
-  std::cout << "This is the output log::::::: " << std::endl;
-  std::cout << res << std::endl;
-  outputFile << res << std::endl;
+  std::set<std::string> res = udpSocket->get_logs_2();
+  // outputFile << res << std::endl;
+  for (auto elem : res) {
+    outputFile << elem << std::endl;
+    std::cout << elem << std::endl;
+  }
   outputFile.flush();
   outputFile.close();
 
-  
+  // std::cout << res.size() << std::endl;
 
   // exit directly from signal handler
   exit(0);
@@ -109,7 +108,7 @@ int main(int argc, char **argv) {
 
 
   // for beb we want every process to send messages to every other process
-  udpSocket->enque_upgrade(static_cast<unsigned int>(m));
+  udpSocket->enque(static_cast<unsigned int>(m));
 
   for (unsigned int host=0; host<hosts.size(); host++) {
     if (parser.id() != hosts[host].id) {
