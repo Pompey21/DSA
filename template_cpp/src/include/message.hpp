@@ -5,17 +5,11 @@ struct Msg_Convoy {
     unsigned long original_sender;
     Parser::Host receiver;
     unsigned long msg_id;
+    unsigned long message_id; // source + sequence number
     std::array<unsigned int, 8> payload;
     bool is_ack;
     public:
     bool operator==( const Msg_Convoy& other ) {
-        if (other.is_ack) 
-            return sender.ip == other.receiver.ip &&
-                    sender.port == other.receiver.port &&
-                    receiver.ip == other.sender.ip &&
-                    receiver.port == other.sender.port &&
-                    msg_id == other.msg_id;
-        else
             return sender.ip == other.sender.ip &&
                     sender.port == other.sender.port &&
                     receiver.ip == other.receiver.ip &&
@@ -23,6 +17,7 @@ struct Msg_Convoy {
                     msg_id == other.msg_id;
     }
     bool operator<(const Msg_Convoy& other) const {
+        unsigned long tes = (this->original_sender << 16) | this->msg_id;
         std::string message_group_identifier = std::to_string(this->original_sender) + "_" + std::to_string(this->msg_id);
         std::string message_group_identifier_other = std::to_string(other.original_sender) + "_" + std::to_string(other.msg_id);
         return message_group_identifier < message_group_identifier_other;
