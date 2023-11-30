@@ -22,6 +22,7 @@ static void stop(int) {
   std::cout << "Writing output.\n";
 
   std::vector<std::string> res = udpSocket->get_logs_3();
+  std::cout << "This is the size of the logs: " << res.size() << std::endl;
   // outputFile << res << std::endl;
   for (auto elem : res) {
     outputFile << elem << std::endl;
