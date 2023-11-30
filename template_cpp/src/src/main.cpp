@@ -110,13 +110,6 @@ int main(int argc, char **argv) {
   // for beb we want every process to send messages to every other process
   udpSocket->enque(static_cast<unsigned int>(m));
 
-  for (unsigned int host=0; host<hosts.size(); host++) {
-    if (parser.id() != hosts[host].id) {
-      for (unsigned int message=1; message <= m; message++) {
-        // udpSocket->enque(hosts[host], message);
-      }
-    }
-  }
 
   // After a process finishes broadcasting,
   // it waits forever for the delivery of messages.

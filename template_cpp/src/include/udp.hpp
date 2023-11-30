@@ -33,6 +33,7 @@ class UDPSocket {
 
         void create();
         void enque(unsigned int msg);
+        void enque_reverse(unsigned int msg);
 
         std::ostringstream get_logs();
         std::set<std::string> get_logs_2();
@@ -45,18 +46,16 @@ class UDPSocket {
         Parser::Host localhost;
         std::unordered_map<unsigned long, Parser::Host> destiantions;
         int sockfd; // socket file descriptor
-        unsigned long msg_id;
+        int msg_id;
         std::mutex logs_lock;
-        std::set<std::string> logs_set;
         std::vector<std::string> logs_vector;
-        std::mutex message_queue_lock;
         
-        // process -> his queue of messages
-        std::unordered_map<unsigned long, std::set<Msg_Convoy>> message_queue;
+        std::mutex message_queue_lock;
+        // process -> his queue of messages // map_of_message_queues
+        std::unordered_map<unsigned long, std::set<Msg_Convoy>> map_of_message_queues;
 
         // original sender + message id -> set([processes that have seen it])
         std::map<std::string, std::set<unsigned long>> pending;
-
         std::set<std::string> delivered_messages;
         std::map<std::string, Msg_Convoy> messages_prepared_for_delivery;
 
