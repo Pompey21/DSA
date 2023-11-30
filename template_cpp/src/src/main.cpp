@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
   signal(SIGTERM, stop);
   signal(SIGINT, stop);
 
-  std::cout << "Works before";
+  std::cout << "Works before" << std::endl;
 
   // `true` means that a config file is required.
   // Call with `false` if no config file is necessary.
