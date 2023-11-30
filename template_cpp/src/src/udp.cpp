@@ -79,7 +79,7 @@ struct sockaddr_in UDPSocket::set_up_destination_address(Parser::Host dest) {
 
 void UDPSocket::enque(unsigned int msg) {
 
-    // this->message_queue_lock.lock();
+    this->message_queue_lock.lock();
 
     for (auto& [id, host] : this->destiantions) {
         this->map_of_message_queues[host.id].insert({});
@@ -90,9 +90,9 @@ void UDPSocket::enque(unsigned int msg) {
     for (unsigned int i = 1; i<=msg; i++) {
         payload[(i-1)%8] = i;
         std::string msg_prep = "b " + std::to_string(i);
-        // this->logs_lock.lock();
+        this->logs_lock.lock();
         this->logs_vector.push_back(msg_prep);
-        // this->logs_lock.unlock();
+        this->logs_lock.unlock();
 
         if ( (i % 8 == 0 && i != 0) || (i == msg) ) { // need to create a struct and enque it!
             // 1. add to set for every process
@@ -115,7 +115,7 @@ void UDPSocket::enque(unsigned int msg) {
             payload.fill(0);
         }
     }
-    // message_queue_lock.unlock();
+    message_queue_lock.unlock();
 
     // std::cout << "Enquing .." << std::endl;
     // for (const auto& [id, host] : this->destiantions) {
@@ -131,9 +131,9 @@ void UDPSocket::send_message() {
 
         for (const auto& [host_id, queued_messages] : this->map_of_message_queues) {
             if (queued_messages.size() > 0) {
-                // message_queue_lock.lock();
+                message_queue_lock.lock();
                 std::set<Msg_Convoy> copied_message_queue = queued_messages;
-                // message_queue_lock.unlock();
+                message_queue_lock.unlock();
 
                 for (const Msg_Convoy& message : copied_message_queue) {
                     struct sockaddr_in destaddr = this->set_up_destination_address(message.receiver);
@@ -159,12 +159,12 @@ void UDPSocket::receive_message() {
             Msg_Convoy copied_message_convoy = message_convoy;
 
             // std::cout << "Before receiving ack, queue length: " << message_queue[copied_message_convoy.receiver.id].size() << std::endl;
-            // message_queue_lock.lock();
+            message_queue_lock.lock();
             Parser::Host temp_addr = message_convoy.receiver;
             copied_message_convoy.receiver = copied_message_convoy.sender;
             copied_message_convoy.sender = temp_addr;
             map_of_message_queues[copied_message_convoy.receiver.id].erase(copied_message_convoy);
-            // message_queue_lock.unlock();
+            message_queue_lock.unlock();
 
             // std::cout << "After receiving ack, queue length: " << message_queue[copied_message_convoy.receiver.id].size() << std::endl;
         }
@@ -242,9 +242,9 @@ void UDPSocket::receive_message() {
                     if (host_id != this->localhost.id) {
                         copied_message_convoy.receiver = host_parser;
 
-                    // this->message_queue_lock.lock();
+                    this->message_queue_lock.lock();
                     this->map_of_message_queues[host_id].insert(copied_message_convoy);
-                    // this->message_queue_lock.unlock();
+                    this->message_queue_lock.unlock();
                     } 
                 }
             }
