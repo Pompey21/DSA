@@ -4,7 +4,7 @@ struct Msg_Convoy {
     Parser::Host sender;
     unsigned long original_sender;
     Parser::Host receiver;
-    int msg_id;
+    unsigned long msg_id;
     unsigned long message_id; // source + sequence number
     std::array<unsigned int, 8> payload;
     bool is_ack;

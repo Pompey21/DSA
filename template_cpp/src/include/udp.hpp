@@ -46,7 +46,7 @@ class UDPSocket {
         Parser::Host localhost;
         std::unordered_map<unsigned long, Parser::Host> destiantions;
         int sockfd; // socket file descriptor
-        int msg_id;
+        unsigned long msg_id;
         std::mutex logs_lock;
         std::vector<std::string> logs_vector;
         
