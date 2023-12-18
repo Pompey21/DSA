@@ -17,7 +17,6 @@ struct Msg_Convoy {
                     msg_id == other.msg_id;
     }
     bool operator<(const Msg_Convoy& other) const {
-        unsigned long tes = (this->original_sender << 16) | this->msg_id;
         std::string message_group_identifier = std::to_string(this->original_sender) + "_" + std::to_string(this->msg_id);
         std::string message_group_identifier_other = std::to_string(other.original_sender) + "_" + std::to_string(other.msg_id);
         return message_group_identifier < message_group_identifier_other;

@@ -217,7 +217,6 @@ void UDPSocket::receive_message() {
 
                         while (this->messages_prepared_for_delivery.find(next_message_group_identifier) != this->messages_prepared_for_delivery.end()) {
                             Msg_Convoy next_message_convoy = messages_prepared_for_delivery[next_message_group_identifier];
-                            this->delivered_messages.insert(next_message_group_identifier);
                             deliver_to_logs(next_message_convoy);
 
                             std::tuple<std::string, std::string> process_msgID = split_message_identifier(next_message_group_identifier);

@@ -1,3 +1,4 @@
 example/output/
 .vscode/
 template_cpp/test_command.py
+example/

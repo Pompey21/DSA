@@ -106,8 +106,6 @@ int main(int argc, char **argv) {
   // start the socket -> we create two threads, one for sending and one for receiving
 
   udpSocket->create();
-
-
   // for beb we want every process to send messages to every other process
   udpSocket->enque(static_cast<unsigned int>(m));
 
