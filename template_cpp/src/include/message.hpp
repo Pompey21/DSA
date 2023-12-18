@@ -1,43 +1,57 @@
-#include "parser.hpp"
+#pragma once
 
-struct Msg_Convoy {
-    Parser::Host sender;
-    unsigned long original_sender;
-    Parser::Host receiver;
-    unsigned long msg_id;
-    unsigned long message_id; // source + sequence number
-    std::array<unsigned int, 8> payload;
-    bool is_ack;
+#include <iostream>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <cstdlib>
+
+#include <sys/types.h> 
+#include <sys/socket.h> 
+#include <arpa/inet.h> 
+#include <netinet/in.h> 
+
+enum message_type {ACK, SYN, RSYN, BROADCAST};
+
+enum ack_status {NOT_SEND, DELETED, NOT_RECEIVED};
+
+enum agreement_type {PROPOSAL, ACKNOWLEDGEMENT, NACK};
+
+class Metadata {
     public:
-    bool operator==( const Msg_Convoy& other ) {
-            return sender.ip == other.sender.ip &&
-                    sender.port == other.sender.port &&
-                    receiver.ip == other.receiver.ip &&
-                    receiver.port == other.receiver.port &&
-                    msg_id == other.msg_id;
-    }
-    bool operator<(const Msg_Convoy& other) const {
-        std::string message_group_identifier = std::to_string(this->original_sender) + "_" + std::to_string(this->msg_id);
-        std::string message_group_identifier_other = std::to_string(other.original_sender) + "_" + std::to_string(other.msg_id);
-        return message_group_identifier < message_group_identifier_other;
-    }
+        unsigned long source_id;
+        unsigned long iterm_id;
+        unsigned long seq_no;
 
-    void msg_convoy_print() {
-        std::cout << "\n-----------------------------------------" << std::endl;
-        std::cout << "Sender: " << this->sender.id << std::endl;
-        std::cout << "The Original Sender: " << this->original_sender << std::endl;
-        std::cout << "Receiver: " << this->receiver.id << std::endl;
-        std::cout << "Message Identifier: " << this->msg_id << std::endl;
-
-        std::cout << "This is the payload: " << std::endl;
-        for (unsigned int msg : this->payload) {
-            std::cout << msg << std::endl;
+        Metadata(unsigned long source_id, unsigned long iterm_id, unsigned long seq_no) {
+            this->source_id = source_id;
+            this->iterm_id = iterm_id;
+            this->seq_no = seq_no;
         }
-        
-        // if (this->is_ack) {
-        //     std::cout << "This message is an acknowledgeement." << std::endl;
-        // }
-        std::cout << "-----------------------------------------\n" << std::endl;
-    }
+
+        ~Metadata() {}
 };
 
+typedef struct {
+    unsigned long seq_no;
+    unsigned int round;
+    unsigned long source_id;
+    int proposal_number;
+
+    message_type type;
+    agreement_type agreement;
+    in_addr_t ip;
+    unsigned short port;
+    unsigned int content_size;
+    int content[1];
+} Message;
+
+Message *create_message(unsigned long source_id, unsigned long seq_no, void *content, message_type type,
+                        in_addr_t ip, unsigned short port, int proposal_number, agreement_type agreement,
+                        unsigned int size, unsigned int round);
+
+void to_string(Message *message);
+
+std::string ipReadable(in_addr_t ip);
+unsigned short portReadable(unsigned short port);
