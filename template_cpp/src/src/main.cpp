@@ -23,7 +23,7 @@ static void stop(int) {
   logger->log_flush();
 
   // write/flush output file if necessary
-  std::cout << "Writing output.\n" << flush;
+  std::cout << "Writing output.\n" << std::flush;
 
   // exit directly from signal handler
   exit(0);
@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
   signal(SIGINT, stop);
   // signal(SIGSEGV, stop);
 
-  cout << "After initialize signals " << endl << flush;
+  std::cout << "After initialize signals " << std::endl << std::flush;
 
   // `true` means that a config file is required.
   // Call with `false` if no config file is necessary.
@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
   Parser parser(argc, argv);
   parser.parse();
 
-  cout << "After parsing " << endl << flush;
+  std::cout << "After parsing " << std::endl << std::flush;
 
   // hello();
   // std::cout << std::endl;
@@ -58,9 +58,9 @@ int main(int argc, char **argv) {
   // std::cout << "List of resolved hosts is:\n";
   // std::cout << "==========================\n";
 
-  std::cout << "Doing some initialization...\n\n" << flush;
+  std::cout << "Doing some initialization...\n\n" << std::flush;
 
-  std::cout << "Broadcasting and delivering messages...\n\n" << flush;
+  std::cout << "Broadcasting and delivering messages...\n\n" << std::flush;
   int number_messages;
   unsigned long receiver_id;
 
