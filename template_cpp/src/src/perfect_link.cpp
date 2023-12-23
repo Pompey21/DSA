@@ -284,7 +284,7 @@ void PerfectLink::listen() {
 
 void PerfectLink::cleanup() {
     while(true) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_BEFORE_CLEANUP));
+        std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_BEFORE_CLEAN));
         this->add_element_queue.lock();
         auto iterator = this->message_queue.begin();
         auto end = this->message_queue.end();
