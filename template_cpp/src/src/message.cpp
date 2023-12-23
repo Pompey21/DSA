@@ -1,8 +1,16 @@
 #include "message.hpp"
 
-Message *create_message(unsigned long source_id, unsigned long sequence_number, void *data, message_type type, 
-                        in_addr_t ip, unsigned short port, int proposal_number, agreement_type agreement,
-                        unsigned int size, unsigned int round) {
+Message *create_message(
+                    unsigned long source_id, 
+                    unsigned long sequence_number, 
+                    void *data, 
+                    message_type type, 
+                    in_addr_t ip, 
+                    unsigned short port, 
+                    int proposal_number, 
+                    agreement_type agreement,
+                    unsigned int size, 
+                    unsigned int round) {
 
     int message_size = size == 0 ? static_cast<int>(sizeof(Message)) : static_cast<int>(offsetof(Message, content) + size);
     Message *message = reinterpret_cast<Message *>(malloc(message_size));
