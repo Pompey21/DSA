@@ -58,11 +58,10 @@ void Lattice_Agreement::broadcast() {
     int index = 1;
 
     for (auto iter : this->proposed_values[this->round]) {
-        data[index] = iter;
-        index++;
+        data[index++] = iter;
     }
 
-    for (Parser::Host host : this->hosts) {
+    for (const Parser::Host host : this->hosts) {
         this->perfect_link->send(
             host.ip, 
             host.port, 
@@ -78,13 +77,19 @@ void Lattice_Agreement::broadcast() {
 
 void Lattice_Agreement::read_from_file() {
     std::string line;
-    getline(this->input_file, line);
-    std::istringstream ss(line);
-    int number;
-    while (ss >> number) {
-        this->proposed_values[this->round].insert(number);
+
+    if (getline(this->input_file, line)) {
+        std::istringstream ss(line);
+        int number;
+
+        while (ss >> number) {
+            this->proposed_values[this->round].insert(number);
+        }
+
+        this->p--;
+    } else {
+        std::cerr << "Error reading from file." << std::endl;
     }
-    this->p --;
 }
 
 void Lattice_Agreement::first_proposal() {
