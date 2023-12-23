@@ -1,6 +1,6 @@
 #include "message.hpp"
 
-Message *create_message(unsigned long source_id, unsigned long seq_no, void *data, message_type type, 
+Message *create_message(unsigned long source_id, unsigned long sequence_number, void *data, message_type type, 
                         in_addr_t ip, unsigned short port, int proposal_number, agreement_type agreement,
                         unsigned int size, unsigned int round) {
 
@@ -8,7 +8,7 @@ Message *create_message(unsigned long source_id, unsigned long seq_no, void *dat
     Message *message = reinterpret_cast<Message *>(malloc(message_size));
     if (message == NULL) return NULL;
     message->source_id = source_id;
-    message->seq_no = seq_no;
+    message->sequence_number = sequence_number;
     if (data != NULL && size > 0) {
         memcpy(&(message->content), data, size);
     }
@@ -68,7 +68,7 @@ void to_string(Message *message) {
     std::cout << "  port: " << message->port << std::endl << std::flush;
     std::cout << "  size_content:" << message->content_size << std::endl << std::flush;
     std::cout << "  content_addr: " << message->content << std::endl << std::flush;
-    std::cout << "  seq_no: " << message->seq_no << std::endl << std::flush;
+    std::cout << "  sequence_number: " << message->sequence_number << std::endl << std::flush;
     std::cout << "  source_id: " << message->source_id << std::endl << std::flush;
     std::cout << "  message_type: " << type << std::endl << std::flush;
     std::cout << "  agreement_type: " << agreement << std::endl << std::flush;
