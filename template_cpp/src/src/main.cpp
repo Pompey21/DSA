@@ -1,14 +1,17 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include <sstream>
 
+#include "message.hpp"
 #include "parser.hpp"
+#include "logger.hpp"
+#include "perfect_link.hpp"
 #include "hello.h"
-#include "udp.hpp"
+#include "lattice.hpp"
 #include <signal.h>
 
-std::ofstream outputFile;
-UDPSocket *udpSocket;
+Logger *logger;
 
 static void stop(int) {
   // reset signal handlers to default
@@ -16,104 +19,79 @@ static void stop(int) {
   signal(SIGINT, SIG_DFL);
 
   // immediately stop network packet processing
-  std::cout << "Immediately stopping network packet processing.\n";
+  std::cout << "Immediately stopping network packet processing.\n" << std::flush;
+  logger->log_flush();
 
   // write/flush output file if necessary
-  std::cout << "Writing output.\n";
-
-  std::vector<std::string> res = udpSocket->get_logs_3();
-  std::cout << "This is the size of the logs: " << res.size() << std::endl;
-  // outputFile << res << std::endl;
-  for (auto elem : res) {
-    outputFile << elem << std::endl;
-    std::cout << elem << std::endl;
-  }
-  outputFile.flush();
-  outputFile.close();
-
-  // std::cout << res.size() << std::endl;
+  std::cout << "Writing output.\n" << flush;
 
   // exit directly from signal handler
   exit(0);
 }
 
 int main(int argc, char **argv) {
+  std::cout << "START " << std::endl << std::flush;
   signal(SIGTERM, stop);
   signal(SIGINT, stop);
+  // signal(SIGSEGV, stop);
 
-  std::cout << "Works before" << std::endl;
+  cout << "After initialize signals " << endl << flush;
 
   // `true` means that a config file is required.
   // Call with `false` if no config file is necessary.
   bool requireConfig = true;
-  unsigned long m,i;
 
   Parser parser(argc, argv);
   parser.parse();
 
-  hello();
-  std::cout << std::endl;
+  cout << "After parsing " << endl << flush;
 
-// PID = Process ID ?
-  std::cout << "My PID: " << getpid() << "\n";
-  std::cout << "From a new terminal type `kill -SIGINT " << getpid() << "` or `kill -SIGTERM "
-            << getpid() << "` to stop processing packets\n\n";
+  // hello();
+  // std::cout << std::endl;
 
-  std::cout << "My ID: " << parser.id() << "\n\n";
+  // std::cout << "My PID: " << getpid() << "\n";
+  // std::cout << "From a new terminal type `kill -SIGINT " << getpid() << "` or `kill -SIGTERM "
+  //           << getpid() << "` to stop processing packets\n\n";
 
-  std::cout << "List of resolved hosts is:\n";
-  std::cout << "==========================\n";
+  // std::cout << "My ID: " << parser.id() << "\n\n";
+
+  // std::cout << "List of resolved hosts is:\n";
+  // std::cout << "==========================\n";
+
+  std::cout << "Doing some initialization...\n\n" << flush;
+
+  std::cout << "Broadcasting and delivering messages...\n\n" << flush;
+  int number_messages;
+  unsigned long receiver_id;
+
+  // ifstream config_file; 
+  // config_file.open(parser.configPath());
+  // config_file >> number_messages;
+  // config_file >> receiver_id;
+  // config_file.close();
+
+  logger = new Logger(parser.outputPath());
+
   auto hosts = parser.hosts();
-  for (auto &host : hosts) {
-    std::cout << host.id << "\n";
-    std::cout << "Human-readable IP: " << host.ipReadable() << "\n";
-    std::cout << "Machine-readable IP: " << host.ip << "\n";
-    std::cout << "Human-readbale Port: " << host.portReadable() << "\n";
-    std::cout << "Machine-readbale Port: " << host.port << "\n";
-    std::cout << "\n";
-  }
-  std::cout << "\n";
+  int id = 1;
 
-  std::cout << "Path to output:\n";
-  std::cout << "===============\n";
-  std::cout << parser.outputPath() << "\n\n";
-  outputFile.open(parser.outputPath(), std::ofstream::out);
-  if (!outputFile.is_open()){
-    std::cout << "Cannot open the file..." << "\n";
-    std::cout << "Exiting..." << "\n";
-    exit(0);
-  }
-
-  std::cout << "Path to config:\n";
-  std::cout << "===============\n";
-  std::cout << parser.configPath() << "\n\n";
-
-  std::cout << "Doing some initialization...\n\n";
-
-  std::cout << "Broadcasting and delivering messages...\n\n";
-
-  
-  //do something
-  std::ifstream config_file(parser.configPath());
-  // config_file >> m >> i; // this is for perfect links
-  config_file >> m;
-  config_file.close();
-
-  // create a socket for that given process!
-  const char* output_path = parser.outputPath();
-  std::string cppString(output_path);
-  udpSocket = new UDPSocket(hosts[parser.id()-1], parser);
-  // start the socket -> we create two threads, one for sending and one for receiving
-
-  udpSocket->create();
-  // for beb we want every process to send messages to every other process
-  udpSocket->enque(static_cast<unsigned int>(m));
-
+  PerfectLink *perfect_link = new PerfectLink(hosts[parser.id() - 1].ip, hosts[parser.id() - 1].port, parser.id(), logger, false);
+  Agreement *agreement = new Agreement(parser.configPath(), hosts, perfect_link);
+  // URB *urb = new URB(perfect_link, hosts, number_messages);
+  // if (number_messages * hosts.size() > 200) {
+  //   number_messages = static_cast<int>(200 / hosts.size());
+  //   number_messages = number_messages <= 1 ? 2 : number_messages;
+  // }
+  // cout << "Start sending " << endl << flush;
+  // for (int i = 0; i < number_messages; i++) {
+  //   urb->broadcast(reinterpret_cast<void *>(NULL));
+  // }
 
   // After a process finishes broadcasting,
   // it waits forever for the delivery of messages.
   while (true) {
-    std::this_thread::sleep_for(std::chrono::hours(1));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
+
   return 0;
 }
