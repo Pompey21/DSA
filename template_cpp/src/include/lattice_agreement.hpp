@@ -20,15 +20,17 @@ class Lattice_Agreement {
 
         void start_service();
 
-        void proposal();
-        void reception();
+        void propose();
+        void receive();
         void first_proposal();
 
         void broadcast();
 
         void decide();
-        void retry_proposal();
-        void read_from_file();
+        void retry_propose();
+        void read_file();
+
+        // add some getters here
 
     private:
         bool active;

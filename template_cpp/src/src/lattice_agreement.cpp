@@ -41,10 +41,10 @@ Lattice_Agreement::~Lattice_Agreement() {
 
 void Lattice_Agreement::start_service() {
     this->first_proposal();
-    std::thread propose(&Lattice_Agreement::proposal, this);
-    std::thread reception(&Lattice_Agreement::reception, this);
+    std::thread propose(&Lattice_Agreement::propose, this);
+    std::thread reception(&Lattice_Agreement::receive, this);
     std::thread decide(&Lattice_Agreement::decide, this);
-    std::thread retry_proposal(&Lattice_Agreement::retry_proposal, this);
+    std::thread retry_proposal(&Lattice_Agreement::retry_propose, this);
 
     propose.detach();
     reception.detach();
@@ -75,7 +75,7 @@ void Lattice_Agreement::broadcast() {
     }
 }
 
-void Lattice_Agreement::read_from_file() {
+void Lattice_Agreement::read_file() {
     std::string line;
 
     if (getline(this->input_file, line)) {
@@ -94,57 +94,56 @@ void Lattice_Agreement::read_from_file() {
 
 void Lattice_Agreement::first_proposal() {
  
-        this->serialize.lock();
+        std::unique_lock<std::mutex> lock(this->serialize);
         std::cout << "PROPOSAL" << std::endl << std::flush;
         if (this->p > 0 && !this->active) {
             this->active = true;
             this->active_proposal_number += 1;
             this->ack_count = 0;
             this->nack_count = 0;
-            this->read_from_file();
+            this->read_file();
             this->broadcast();
             this->sequence_number++;
         }
-        this->serialize.unlock();
 }
 
 
-void Lattice_Agreement::proposal() {
+void Lattice_Agreement::propose() {
     bool infinity = true;
     while (infinity) {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        this->serialize.lock();
+        
+        
+        std::unique_lock<std::mutex> lock(this->serialize);
         if (this->p > 0 && !this->active) {
             this->active = true;
             this->active_proposal_number += 1;
             this->ack_count = 0;
             this->nack_count = 0;
-            this->read_from_file();
+            this->read_file();
             this->broadcast();
             this->sequence_number++;
-        } 
-        this->serialize.unlock();
+        }
     }
 }
 
-void Lattice_Agreement::retry_proposal() {
+void Lattice_Agreement::retry_propose() {
     bool infinity = true;
     while (infinity) {
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
-        this->serialize.lock();
+
+        std::unique_lock<std::mutex> lock(this->serialize);
         if (this->active && this->nack_count > 0) {
             this->active_proposal_number += 1;
             this->ack_count = 0;
             this->nack_count = 0;
             this->broadcast();
         }
-        
-        this->serialize.unlock();
     }
 }
 
-
-void Lattice_Agreement::reception() {
+// need to break this method down into sub-methods!!
+void Lattice_Agreement::receive() {
     bool infinity = true;
     while (infinity) {
         Message *message = this->perfect_link->receive(false, static_cast<unsigned int>((this->ds + 1) * sizeof(int)));
@@ -204,14 +203,14 @@ void Lattice_Agreement::reception() {
 void Lattice_Agreement::decide() {
     bool infinity = true;
     while (infinity) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));  
-        this->serialize.lock();
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+        std::unique_lock<std::mutex> lock(this->serialize);
         if (this->active && (this->ack_count) >= (this->f + 1)) {
             this->perfect_link->logger->log_decision(this->proposed_values[this->round]);
             this->active = false;
             this->round++;
         }
-        this->serialize.unlock();
     }
 }
 
