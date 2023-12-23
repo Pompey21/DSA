@@ -1,6 +1,6 @@
 #include "lattice_agreement.hpp"
 
-Lattice_Agreement::Lattice_Agreement(std::string filename, std::vector<Parser::Host> hosts, PerfectLink *perfect_link) {
+Lattice_Agreement::Lattice_Agreement(std::string filename, std::vector<Parser::Host> hosts, Perfect_Link *perfect_link) {
     // initialisation of the agreement -> same as in the article provided
     this->active = false;
     this->ack_count = 0;

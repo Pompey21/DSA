@@ -9,34 +9,36 @@
 // In summary, the Logger class is designed to facilitate 
 // logging of events in a concurrent or distributed system.
 
-class Logger {
+class File_Logger {
     public:
-        Logger(std::string filename) {
+        File_Logger(std::string filename) {
             this->log_file.open(filename);
             if (!this->log_file) {
-                perror("Failed to open the output file");
+                perror("Could not open the output file. Exiting with an error.");
                 exit(EXIT_FAILURE);
             }
         }
-        ~Logger() {
+        ~File_Logger() {
             if (this->log_file) {
                 this->log_file.close();
             }
         }
 
-        void log_deliver(unsigned long sender, unsigned long seqno) {
-            this->write_logs.lock();
-            this->cached_logs << "d " << sender << " " << seqno << std::endl;
+        // void log_deliver
+
+        void log_deliver(unsigned long sender, unsigned long sequence_number) {
+            this->write_lock.lock();
+            this->cached_logs << "d " << sender << " " << sequence_number << std::endl;
         }
 
-        void log_send(unsigned long seqno) {
-            this->write_logs.lock();
-            this->cached_logs << "b " << seqno << std::endl;
-            this->write_logs.unlock();
+        void log_broadcast(unsigned long sequence_number) {
+            this->write_lock.lock();
+            this->cached_logs << "b " << sequence_number << std::endl;
+            this->write_lock.unlock();
         }
 
         void log_decision(std::set<int> line) {
-            this->write_logs.lock();
+            this->write_lock.lock();
             auto iterator = line.begin();
             while (iterator != line.end()) {
                 this->cached_logs << *iterator;
@@ -46,20 +48,20 @@ class Logger {
                     this->cached_logs << "\n";
                 }
             }
-            this->write_logs.unlock();
+            this->write_lock.unlock();
         }
 
         void log_flush() {
-            this->write_logs.lock();
+            this->write_lock.lock();
             if (this->log_file) {
                 this->log_file << this->cached_logs.str();
                 this->log_file.flush();
             }
-            this->write_logs.unlock();
+            this->write_lock.unlock();
         }
 
     private:
         std::ofstream log_file;
         std::stringstream cached_logs;
-        std::mutex write_logs;
+        std::mutex write_lock;
 };

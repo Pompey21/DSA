@@ -22,19 +22,19 @@ class Metadata {
     public:
         unsigned long source_id;
         unsigned long iterm_id;
-        unsigned long seq_no;
+        unsigned long sequence_number;
 
-        Metadata(unsigned long source_id, unsigned long iterm_id, unsigned long seq_no) {
+        Metadata(unsigned long source_id, unsigned long iterm_id, unsigned long sequence_number) {
             this->source_id = source_id;
             this->iterm_id = iterm_id;
-            this->seq_no = seq_no;
+            this->sequence_number = sequence_number;
         }
 
         ~Metadata() {}
 };
 
 typedef struct {
-    unsigned long seq_no;
+    unsigned long sequence_number;
     unsigned int round;
     unsigned long source_id;
     int proposal_number;
@@ -47,7 +47,7 @@ typedef struct {
     int content[1];
 } Message;
 
-Message *create_message(unsigned long source_id, unsigned long seq_no, void *content, message_type type,
+Message *create_message(unsigned long source_id, unsigned long sequence_number, void *content, message_type type,
                         in_addr_t ip, unsigned short port, int proposal_number, agreement_type agreement,
                         unsigned int size, unsigned int round);
 

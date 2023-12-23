@@ -13,11 +13,9 @@
 #include "file_logger.hpp"
 #include "perfect_link.hpp"
 
-// #define MAX_NUMBER_ROUNDS 3
-
 class Lattice_Agreement {
     public:
-        Lattice_Agreement(std::string filename, std::vector<Parser::Host> hosts, PerfectLink *perfect_link);
+        Lattice_Agreement(std::string filename, std::vector<Parser::Host> hosts, Perfect_Link *perfect_link);
         ~Lattice_Agreement();
 
         void start_service();
@@ -46,9 +44,9 @@ class Lattice_Agreement {
         std::map<int, std::set<int>> proposed_values;
         std::map<int, std::set<int>> accepted_values;
 
-        PerfectLink *perfect_link;
+        Perfect_Link *perfect_link;
         std::vector<Parser::Host> hosts;
-        Logger *logger;
+        File_Logger *logger;
         std::mutex serialize;
         int *content;
         unsigned long sequence_number;

@@ -1,5 +1,8 @@
 #pragma once
 
+#include "message.hpp"
+#include "file_logger.hpp"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -19,20 +22,18 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "message.hpp"
-#include "file_logger.hpp"
-
 #define WAIT_BEFORE_CLEAN 500
 #define WAIT_TO_RETRY 501
 
-class PerfectLink {
+class Perfect_Link {
     public:
         std::mutex insert_history;
+        std::mutex read_history;
         std::unordered_map<std::string, bool> received_message;
-        Logger *logger;
+        File_Logger *logger;
 
-        PerfectLink(in_addr_t ip, unsigned short port, unsigned long id, Logger *logger, bool enable_listener);
-        ~PerfectLink();
+        Perfect_Link(in_addr_t ip, unsigned short port, unsigned long id, File_Logger *logger, bool enable_listener);
+        ~Perfect_Link();
 
         void send(in_addr_t ip, unsigned short port, void *content, message_type type, bool logging,
                 unsigned long source_id, int proposal_number, unsigned int size, agreement_type agreement,
