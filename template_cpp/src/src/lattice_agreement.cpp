@@ -1,5 +1,6 @@
 #include "lattice_agreement.hpp"
 
+// CONSTRUCTOR
 Lattice_Agreement::Lattice_Agreement(std::string filename, std::vector<Parser::Host> hosts, Perfect_Link *perfect_link) {
     // initialisation of the agreement -> same as in the article provided
     this->active = false;
@@ -27,6 +28,7 @@ Lattice_Agreement::Lattice_Agreement(std::string filename, std::vector<Parser::H
     this->start_service();
 }
 
+// DESTRUCTOR
 Lattice_Agreement::~Lattice_Agreement() {
     if (this->input_file.is_open()) {
         this->input_file.close();
@@ -60,10 +62,17 @@ void Lattice_Agreement::broadcast() {
         index++;
     }
 
-    for (auto host : this->hosts) {
-        this->perfect_link->send(host.ip, host.port, data, SYN, false, this->perfect_link->getID(), 
-                                 this->active_proposal_number, static_cast<unsigned int>(sizeof(int) * (data[0] + 1)), 
-                                 PROPOSAL, this->round, this->sequence_number);
+    for (Parser::Host host : this->hosts) {
+        this->perfect_link->send(
+            host.ip, 
+            host.port, 
+            data, 
+            SYN, 
+            false, 
+            this->perfect_link->getID(), 
+            this->active_proposal_number, 
+            static_cast<unsigned int>(sizeof(int) * (data[0] + 1)), 
+            PROPOSAL, this->round, this->sequence_number);
     }
 }
 
@@ -87,13 +96,7 @@ void Lattice_Agreement::first_proposal() {
             this->active_proposal_number += 1;
             this->ack_count = 0;
             this->nack_count = 0;
-
-            // cout << "Start reading from file" << endl << flush;
-            // proposed_value𝑖 ← proposal
             this->read_from_file();
-            // broadcast (PROPOSAL, SET proposed_value, INTEGER active_proposal_number))
-            
-            // cout << "Start broadcasting" << endl << flush;
             this->broadcast();
             this->sequence_number++;
         }
@@ -102,22 +105,16 @@ void Lattice_Agreement::first_proposal() {
 
 
 void Lattice_Agreement::proposal() {
-    while (1) {
+    bool infinity = true;
+    while (infinity) {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
         this->serialize.lock();
-        // cout << "PROPOSAL" << endl << flush;
         if (this->p > 0 && !this->active) {
             this->active = true;
             this->active_proposal_number += 1;
             this->ack_count = 0;
             this->nack_count = 0;
-
-            // cout << "Start reading from file" << endl << flush;
-            // proposed_value𝑖 ← proposal
             this->read_from_file();
-            // broadcast (PROPOSAL, SET proposed_value, INTEGER active_proposal_number))
-            
-            // cout << "Start broadcasting" << endl << flush;
             this->broadcast();
             this->sequence_number++;
         } 
@@ -126,7 +123,8 @@ void Lattice_Agreement::proposal() {
 }
 
 void Lattice_Agreement::retry_proposal() {
-    while (1) {
+    bool infinity = true;
+    while (infinity) {
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
         this->serialize.lock();
         if (this->active && this->nack_count > 0) {
@@ -142,7 +140,8 @@ void Lattice_Agreement::retry_proposal() {
 
 
 void Lattice_Agreement::reception() {
-    while (1) {
+    bool infinity = true;
+    while (infinity) {
         Message *message = this->perfect_link->receive(false, static_cast<unsigned int>((this->ds + 1) * sizeof(int)));
         
         if (message == NULL) {
@@ -153,23 +152,12 @@ void Lattice_Agreement::reception() {
         if (message->agreement == ACKNOWLEGEMENT && message->proposal_number == this->active_proposal_number) {
             this->ack_count += 1;
         } else if (message->agreement == NACK && message->proposal_number == this->active_proposal_number) {
-            // proposed_value ← proposed_value ∪ value
             int *value = reinterpret_cast<int *>(message->content);
             for (int i = 1; i <= value[0]; i ++) {
                 this->proposed_values[message->round].insert(value[i]);
             }
             this->nack_count += 1;
         } else if (message->agreement == PROPOSAL) {
-            /* upon reception of ⟨proposal, Set proposed_value, Integer proposal_number⟩ from proposer 𝑃𝑗 such that
-                accepted_value𝑖 ⊆ proposed_value:
-                accepted_value𝑖 ← proposed_value
-                send ⟨ack, proposal_number⟩ to 𝑃𝑗
-            */
-            /* upon reception of ⟨proposal, Set proposed_value, Integer proposal_number⟩ from proposer 𝑃𝑗 such that
-                accepted_value𝑖 ⊈ proposed_value:
-                accepted_value𝑖 ← accepted_value𝑖 ∪ proposed_value
-                send ⟨nack, proposal_number, accepted_value𝑖⟩ to 𝑃𝑗
-            */
             
             int *value = reinterpret_cast<int *>(message->content);
 
@@ -209,11 +197,11 @@ void Lattice_Agreement::reception() {
 
 
 void Lattice_Agreement::decide() {
-    while (1) {
+    bool infinity = true;
+    while (infinity) {
         std::this_thread::sleep_for(std::chrono::milliseconds(200));  
         this->serialize.lock();
         if (this->active && (this->ack_count) >= (this->f + 1)) {
-            // trigger decide -> means to implement a logger
             this->perfect_link->logger->log_decision(this->proposed_values[this->round]);
             this->active = false;
             this->round++;
