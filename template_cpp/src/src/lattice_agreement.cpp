@@ -144,12 +144,12 @@ void Lattice_Agreement::reception() {
     while (infinity) {
         Message *message = this->perfect_link->receive(false, static_cast<unsigned int>((this->ds + 1) * sizeof(int)));
         
-        if (message == NULL) {
+        if (message == nullptr) {
             continue;
         }
 
         this->serialize.lock();
-        if (message->agreement == ACKNOWLEGEMENT && message->proposal_number == this->active_proposal_number) {
+        if (message->agreement == ACKNOWLEDGEMENT && message->proposal_number == this->active_proposal_number) {
             this->ack_count += 1;
         } else if (message->agreement == NACK && message->proposal_number == this->active_proposal_number) {
             int *value = reinterpret_cast<int *>(message->content);
@@ -170,7 +170,7 @@ void Lattice_Agreement::reception() {
 
                 this->perfect_link->send(this->hosts[message->source_id - 1].ip, this->hosts[message->source_id - 1].port,
                                          NULL, SYN, false, this->perfect_link->getID(), message->proposal_number, 0,
-                                         ACKNOWLEGEMENT, message->round, this->sequence_number);
+                                         ACKNOWLEDGEMENT, message->round, this->sequence_number);
                 this->sequence_number ++;
             } else {
                 this->accepted_values[message->round].insert(value + 1, value + value[0] + 1);

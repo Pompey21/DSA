@@ -16,7 +16,7 @@ enum message_type {ACK, SYN, RSYN, BROADCAST};
 
 enum ack_status {NOT_SEND, DELETED, NOT_RECEIVED};
 
-enum agreement_type {PROPOSAL, ACKNOWLEGEMENT, NACK};
+enum agreement_type {PROPOSAL, ACKNOWLEDGEMENT, NACK};
 
 class Metadata {
     public:

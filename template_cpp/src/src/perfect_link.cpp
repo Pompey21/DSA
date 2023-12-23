@@ -236,7 +236,7 @@ Message* Perfect_Link::receive(bool logging, unsigned int size) {
         ack_key << "_" << recv_message->sequence_number;
 
         this->send(sourceaddr.sin_addr.s_addr, sourceaddr.sin_port, NULL, ACK, false, recv_message->source_id, 
-                   0, 0, ACKNOWLEGEMENT, recv_message->round);
+                   0, 0, ACKNOWLEDGEMENT, recv_message->round);
         
             auto found = this->received_message.find(ack_key.str());
             if (found == this->received_message.end()) {
