@@ -20,7 +20,7 @@
 #include <unordered_map>
 
 #include "message.hpp"
-#include "logger.hpp"
+#include "file_logger.hpp"
 
 #define WAIT_BEFORE_CLEAN 500
 #define WAIT_TO_RETRY 501

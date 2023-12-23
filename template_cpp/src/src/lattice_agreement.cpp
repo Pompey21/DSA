@@ -1,13 +1,14 @@
-#include "lattice.hpp"
+#include "lattice_agreement.hpp"
 
-Agreement::Agreement(std::string filename, std::vector<Parser::Host> hosts, PerfectLink *perfect_link) {
+Lattice_Agreement::Lattice_Agreement(std::string filename, std::vector<Parser::Host> hosts, PerfectLink *perfect_link) {
+    // initialisation of the agreement -> same as in the article provided
     this->active = false;
     this->ack_count = 0;
     this->nack_count = 0;
     this->active_proposal_number = 0;
     this->hosts = hosts;
     this->perfect_link = perfect_link;
-    this->seq_no = 1;
+    this->sequence_number = 1;
     this->round = 0;
     this->f = static_cast<unsigned int>((hosts.size() - 1) / 2);
     this->input_file.open(filename);
@@ -26,7 +27,7 @@ Agreement::Agreement(std::string filename, std::vector<Parser::Host> hosts, Perf
     this->start_service();
 }
 
-Agreement::~Agreement() {
+Lattice_Agreement::~Lattice_Agreement() {
     if (this->input_file.is_open()) {
         this->input_file.close();
     }
@@ -36,12 +37,12 @@ Agreement::~Agreement() {
     }
 }
 
-void Agreement::start_service() {
+void Lattice_Agreement::start_service() {
     this->first_proposal();
-    std::thread propose(&Agreement::proposal, this);
-    std::thread reception(&Agreement::reception, this);
-    std::thread decide(&Agreement::decide, this);
-    std::thread retry_proposal(&Agreement::retry_proposal, this);
+    std::thread propose(&Lattice_Agreement::proposal, this);
+    std::thread reception(&Lattice_Agreement::reception, this);
+    std::thread decide(&Lattice_Agreement::decide, this);
+    std::thread retry_proposal(&Lattice_Agreement::retry_proposal, this);
 
     propose.detach();
     reception.detach();
@@ -49,7 +50,7 @@ void Agreement::start_service() {
     retry_proposal.detach();
 }
 
-void Agreement::broadcast() {
+void Lattice_Agreement::broadcast() {
     int *data = this->content;
     data[0] = static_cast<int>(this->proposed_values[this->round].size());
     int index = 1;
@@ -62,11 +63,11 @@ void Agreement::broadcast() {
     for (auto host : this->hosts) {
         this->perfect_link->send(host.ip, host.port, data, SYN, false, this->perfect_link->getID(), 
                                  this->active_proposal_number, static_cast<unsigned int>(sizeof(int) * (data[0] + 1)), 
-                                 PROPOSAL, this->round, this->seq_no);
+                                 PROPOSAL, this->round, this->sequence_number);
     }
 }
 
-void Agreement::read_from_file() {
+void Lattice_Agreement::read_from_file() {
     std::string line;
     getline(this->input_file, line);
     std::istringstream ss(line);
@@ -77,7 +78,7 @@ void Agreement::read_from_file() {
     this->p --;
 }
 
-void Agreement::first_proposal() {
+void Lattice_Agreement::first_proposal() {
  
         this->serialize.lock();
         std::cout << "PROPOSAL" << std::endl << std::flush;
@@ -94,13 +95,13 @@ void Agreement::first_proposal() {
             
             // cout << "Start broadcasting" << endl << flush;
             this->broadcast();
-            this->seq_no++;
+            this->sequence_number++;
         }
         this->serialize.unlock();
 }
 
 
-void Agreement::proposal() {
+void Lattice_Agreement::proposal() {
     while (1) {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
         this->serialize.lock();
@@ -118,13 +119,13 @@ void Agreement::proposal() {
             
             // cout << "Start broadcasting" << endl << flush;
             this->broadcast();
-            this->seq_no++;
+            this->sequence_number++;
         } 
         this->serialize.unlock();
     }
 }
 
-void Agreement::retry_proposal() {
+void Lattice_Agreement::retry_proposal() {
     while (1) {
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
         this->serialize.lock();
@@ -140,7 +141,7 @@ void Agreement::retry_proposal() {
 }
 
 
-void Agreement::reception() {
+void Lattice_Agreement::reception() {
     while (1) {
         Message *message = this->perfect_link->receive(false, static_cast<unsigned int>((this->ds + 1) * sizeof(int)));
         
@@ -181,8 +182,8 @@ void Agreement::reception() {
 
                 this->perfect_link->send(this->hosts[message->source_id - 1].ip, this->hosts[message->source_id - 1].port,
                                          NULL, SYN, false, this->perfect_link->getID(), message->proposal_number, 0,
-                                         ACKNOWLEGEMENT, message->round, this->seq_no);
-                this->seq_no ++;
+                                         ACKNOWLEGEMENT, message->round, this->sequence_number);
+                this->sequence_number ++;
             } else {
                 this->accepted_values[message->round].insert(value + 1, value + value[0] + 1);
 
@@ -197,8 +198,8 @@ void Agreement::reception() {
                 this->perfect_link->send(this->hosts[message->source_id - 1].ip, this->hosts[message->source_id - 1].port, 
                                          send_values, SYN, false, this->perfect_link->getID(), message->proposal_number,
                                          static_cast<unsigned int>(sizeof(int) * (send_values[0] + 1)), 
-                                         NACK, message->round, this->seq_no);
-                this->seq_no++;
+                                         NACK, message->round, this->sequence_number);
+                this->sequence_number++;
             }
         }
     
@@ -207,7 +208,7 @@ void Agreement::reception() {
 }
 
 
-void Agreement::decide() {
+void Lattice_Agreement::decide() {
     while (1) {
         std::this_thread::sleep_for(std::chrono::milliseconds(200));  
         this->serialize.lock();

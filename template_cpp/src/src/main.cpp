@@ -5,10 +5,10 @@
 
 #include "message.hpp"
 #include "parser.hpp"
-#include "logger.hpp"
+#include "file_logger.hpp"
 #include "perfect_link.hpp"
 #include "hello.h"
-#include "lattice.hpp"
+#include "lattice_agreement.hpp"
 #include <signal.h>
 
 Logger *logger;
@@ -76,17 +76,8 @@ int main(int argc, char **argv) {
   int id = 1;
 
   PerfectLink *perfect_link = new PerfectLink(hosts[parser.id() - 1].ip, hosts[parser.id() - 1].port, parser.id(), logger, false);
-  Agreement *agreement = new Agreement(parser.configPath(), hosts, perfect_link);
-  // URB *urb = new URB(perfect_link, hosts, number_messages);
-  // if (number_messages * hosts.size() > 200) {
-  //   number_messages = static_cast<int>(200 / hosts.size());
-  //   number_messages = number_messages <= 1 ? 2 : number_messages;
-  // }
-  // cout << "Start sending " << endl << flush;
-  // for (int i = 0; i < number_messages; i++) {
-  //   urb->broadcast(reinterpret_cast<void *>(NULL));
-  // }
-
+  Lattice_Agreement *agreement = new Lattice_Agreement(parser.configPath(), hosts, perfect_link);
+ 
   // After a process finishes broadcasting,
   // it waits forever for the delivery of messages.
   while (true) {

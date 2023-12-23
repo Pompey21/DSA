@@ -10,15 +10,15 @@
 #include <bits/stdc++.h>
 
 #include "parser.hpp"
-#include "logger.hpp"
+#include "file_logger.hpp"
 #include "perfect_link.hpp"
 
-#define MAX_NUMBER_ROUNDS 3
+// #define MAX_NUMBER_ROUNDS 3
 
-class Agreement {
+class Lattice_Agreement {
     public:
-        Agreement(std::string filename, std::vector<Parser::Host> hosts, PerfectLink *perfect_link);
-        ~Agreement();
+        Lattice_Agreement(std::string filename, std::vector<Parser::Host> hosts, PerfectLink *perfect_link);
+        ~Lattice_Agreement();
 
         void start_service();
 
@@ -51,6 +51,6 @@ class Agreement {
         Logger *logger;
         std::mutex serialize;
         int *content;
-        unsigned long seq_no;
+        unsigned long sequence_number;
         unsigned int round;
 };

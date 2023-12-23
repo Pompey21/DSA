@@ -6,6 +6,9 @@
 #include <mutex>
 #include <bits/stdc++.h>
 
+// In summary, the Logger class is designed to facilitate 
+// logging of events in a concurrent or distributed system.
+
 class Logger {
     public:
         Logger(std::string filename) {
