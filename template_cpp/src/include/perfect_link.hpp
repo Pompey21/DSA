@@ -75,7 +75,7 @@ class Perfect_Link {
         std::unordered_map<std::string, ack_status> message_queue;
 
         int create_socket(in_addr_t ip, unsigned short port);
-        void start_service();
+        void start();
         void listen();
         void cleanup();
         void retry();

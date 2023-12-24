@@ -24,12 +24,14 @@ class Metadata {
         unsigned long iterm_id;
         unsigned long sequence_number;
 
+        // constructor
         Metadata(unsigned long source_id, unsigned long iterm_id, unsigned long sequence_number) {
             this->source_id = source_id;
             this->iterm_id = iterm_id;
             this->sequence_number = sequence_number;
         }
 
+        // dstructor
         ~Metadata() {}
 };
 
@@ -51,7 +53,7 @@ Message *create_message(unsigned long source_id, unsigned long sequence_number, 
                         in_addr_t ip, unsigned short port, int proposal_number, agreement_type agreement,
                         unsigned int size, unsigned int round);
 
-void to_string(Message *message);
+void message_to_string(Message *message);
 
-std::string ipReadable(in_addr_t ip);
-unsigned short portReadable(unsigned short port);
+std::string ip_to_readable(in_addr_t ip);
+unsigned short port_to_readable(unsigned short port);

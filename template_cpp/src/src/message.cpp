@@ -31,56 +31,56 @@ Message *create_message(
     return message;
 }
 
-std::string ipReadable(in_addr_t ip) {
+std::string ip_to_readable(in_addr_t ip) {
     in_addr tmp_ip;
     tmp_ip.s_addr = ip;
     return std::string(inet_ntoa(tmp_ip));
 }
 
-void to_string(Message *message) {
-    std::string type;
-    std::string agreement;
-    switch (static_cast<int>(message->type)) {
-        case 0:
-            type = "ACK";
-            break;
-        case 1:
-            type = "SYN";
-            break;
-        case 2:
-            type = "RSYN";
-            break;
-        case 3:
-            type = "BROADCAST";
-            break;
-        default:
-            type = "Invalid";
-    }
+// void message_to_string(Message *message) {
+//     std::string type;
+//     std::string agreement;
+//     switch (static_cast<int>(message->type)) {
+//         case 0:
+//             type = "ACK";
+//             break;
+//         case 1:
+//             type = "SYN";
+//             break;
+//         case 2:
+//             type = "RSYN";
+//             break;
+//         case 3:
+//             type = "BROADCAST";
+//             break;
+//         default:
+//             type = "Invalid";
+//     }
 
-    switch (static_cast<int>(message->agreement)) {
-        case 0:
-            agreement = "PROPOSAL";
-            break;
-        case 1:
-            agreement = "ACK";
-            break;
-        case 2:
-            agreement = "NACK";
-            break;
-        default:
-            agreement = "Invalid";
-    }
+//     switch (static_cast<int>(message->agreement)) {
+//         case 0:
+//             agreement = "PROPOSAL";
+//             break;
+//         case 1:
+//             agreement = "ACK";
+//             break;
+//         case 2:
+//             agreement = "NACK";
+//             break;
+//         default:
+//             agreement = "Invalid";
+//     }
 
-    std::cout << "{" << std::endl << std::flush;
-    std::cout << "  ip: " << message->ip << std::endl << std::flush;
-    std::cout << "  port: " << message->port << std::endl << std::flush;
-    std::cout << "  size_content:" << message->content_size << std::endl << std::flush;
-    std::cout << "  content_addr: " << message->content << std::endl << std::flush;
-    std::cout << "  sequence_number: " << message->sequence_number << std::endl << std::flush;
-    std::cout << "  source_id: " << message->source_id << std::endl << std::flush;
-    std::cout << "  message_type: " << type << std::endl << std::flush;
-    std::cout << "  agreement_type: " << agreement << std::endl << std::flush;
-    std::cout << "}" << std::endl << std::flush;
-}
+//     std::cout << "{" << std::endl << std::flush;
+//     std::cout << "  ip: " << message->ip << std::endl << std::flush;
+//     std::cout << "  port: " << message->port << std::endl << std::flush;
+//     std::cout << "  size_content:" << message->content_size << std::endl << std::flush;
+//     std::cout << "  content_addr: " << message->content << std::endl << std::flush;
+//     std::cout << "  sequence_number: " << message->sequence_number << std::endl << std::flush;
+//     std::cout << "  source_id: " << message->source_id << std::endl << std::flush;
+//     std::cout << "  message_type: " << type << std::endl << std::flush;
+//     std::cout << "  agreement_type: " << agreement << std::endl << std::flush;
+//     std::cout << "}" << std::endl << std::flush;
+// }
 
-unsigned short portReadable( unsigned short port) { return ntohs(port); }
+unsigned short port_to_readable( unsigned short port) { return ntohs(port); }
