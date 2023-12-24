@@ -1,10 +1,5 @@
 #include "perfect_link.hpp"
 
-
-#include <functional>
-#include <stdexcept>
-#include <sstream>
-
 // CONSTRUCTOR
 Perfect_Link::Perfect_Link(
                             in_addr_t ip, 
@@ -121,6 +116,9 @@ void Perfect_Link::send(in_addr_t ip, unsigned short port, void *content, messag
         return;
     }
 
+// ===
+
+
     memset(&clientaddr, 0, sizeof(clientaddr));
     clientaddr.sin_family        = AF_INET;
     clientaddr.sin_addr.s_addr   = ip;
@@ -141,22 +139,8 @@ void Perfect_Link::send(in_addr_t ip, unsigned short port, void *content, messag
 
     std::string key = ack_key.str();
 
-    // if (message->type == SYN || message->type == BROADCAST) {
-    //     this->add_element_queue.lock();
-    //     this->message_queue.insert({key, NOT_RECEIVED});
 
-    //     this->message_history.insert({key, message});
-    //     this->add_element_queue.unlock();
-    //     if (logging) {
-    //         this->file_logger->log_broadcast(this->sequence_number);
-    //     }
-    // } else if (message->type == RSYN) {
-    //     this->add_element_queue.lock();
-    //     this->message_queue.insert({ack_key.str(), NOT_RECEIVED});
-    //     this->message_history.insert({ack_key.str(), message});
-    //     this->add_element_queue.unlock();
-    // }
-
+// === 
     auto updateQueue = [this](const std::string& ackKey, ack_status status, Message* msg) {
         this->add_element_queue.lock();
         this->message_queue.insert({ackKey, status});

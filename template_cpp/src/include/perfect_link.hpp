@@ -21,6 +21,9 @@
 #include <cstdlib>
 #include <sstream>
 #include <unordered_map>
+#include <functional>
+#include <stdexcept>
+#include <memory>
 
 #define CLEANUP_TIME_INTERVAL 500
 #define RETRY_TIME_INTERVAL_PF 100
