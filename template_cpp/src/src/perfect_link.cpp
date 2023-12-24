@@ -229,10 +229,6 @@ Message* Perfect_Link::receive(bool logging, unsigned int size) {
 
     receiver_checker_null_setter(data_recv, header);
 
-    if (recv_message == NULL) {
-        return NULL;
-    }
-
     if (recv_message == NULL || recv_message->source_id == 0) {
         std::cout << "error received message" << std::endl << std::flush;
         return NULL;
@@ -241,32 +237,34 @@ Message* Perfect_Link::receive(bool logging, unsigned int size) {
     std::stringstream ack_key;
 
     if (recv_message->type == ACK) {
-        std::string ack_key = ipReadable(recv_message->ip) + ":" + 
-                                std::to_string(static_cast<unsigned int>(portReadable(recv_message->port))) +
-                                "_" + std::to_string(recv_message->sequence_number) + 
-                                "_" + std::to_string(recv_message->source_id);
+        receiver_ack(recv_message);
+        // std::string ack_key = ipReadable(recv_message->ip) + ":" + 
+        //                         std::to_string(static_cast<unsigned int>(portReadable(recv_message->port))) +
+        //                         "_" + std::to_string(recv_message->sequence_number) + 
+        //                         "_" + std::to_string(recv_message->source_id);
         
-        this->add_element_queue.lock();
-        if (this->message_queue.find(ack_key) != this->message_queue.end()) {
-            this->message_queue[ack_key] = DELETED;
-        }
-        this->add_element_queue.unlock();
+        // this->add_element_queue.lock();
+        // if (this->message_queue.find(ack_key) != this->message_queue.end()) {
+        //     this->message_queue[ack_key] = DELETED;
+        // }
+        // this->add_element_queue.unlock();
     } 
     else {
-        std::string ack_key = ipReadable(sourceaddr.sin_addr.s_addr) + ":" +
-                        std::to_string(static_cast<unsigned int>(portReadable(sourceaddr.sin_port))) +
-                        "_" + std::to_string(recv_message->sequence_number);
+        receiver_ack_else(recv_message, sourceaddr, logging);
+        // std::string ack_key = ipReadable(sourceaddr.sin_addr.s_addr) + ":" +
+        //                 std::to_string(static_cast<unsigned int>(portReadable(sourceaddr.sin_port))) +
+        //                 "_" + std::to_string(recv_message->sequence_number);
 
-        this->send(sourceaddr.sin_addr.s_addr, sourceaddr.sin_port, NULL, ACK, false, recv_message->source_id, 
-                   0, 0, ACKNOWLEDGEMENT, recv_message->round);
+        // this->send(sourceaddr.sin_addr.s_addr, sourceaddr.sin_port, NULL, ACK, false, recv_message->source_id, 
+        //            0, 0, ACKNOWLEDGEMENT, recv_message->round);
         
-            auto found = this->received_message.find(ack_key);
-            if (found == this->received_message.end()) {
-                this->received_message.insert({ack_key, true});
-                if (logging) {
-                    this->file_logger->log_deliver(recv_message->source_id, recv_message->sequence_number);
-                }
-            }
+        //     auto found = this->received_message.find(ack_key);
+        //     if (found == this->received_message.end()) {
+        //         this->received_message.insert({ack_key, true});
+        //         if (logging) {
+        //             this->file_logger->log_deliver(recv_message->source_id, recv_message->sequence_number);
+        //         }
+        //     }
     }
 
     if (recv_message->type == SYN || recv_message->type == RSYN) {
@@ -299,6 +297,36 @@ void Perfect_Link::receiver_checker_null_setter(Message *data_recv, Message *hea
         free(header); 
         header = NULL;
     }
+}
+
+void Perfect_Link::receiver_ack(Message *recv_message) {
+        std::string ack_key = ipReadable(recv_message->ip) + ":" + 
+                                std::to_string(static_cast<unsigned int>(portReadable(recv_message->port))) +
+                                "_" + std::to_string(recv_message->sequence_number) + 
+                                "_" + std::to_string(recv_message->source_id);
+        
+        this->add_element_queue.lock();
+        if (this->message_queue.find(ack_key) != this->message_queue.end()) {
+            this->message_queue[ack_key] = DELETED;
+        }
+        this->add_element_queue.unlock();    
+}
+
+void Perfect_Link::receiver_ack_else(Message *received_message, sockaddr_in sourceaddr, bool logging) {
+        std::string ack_key = ipReadable(sourceaddr.sin_addr.s_addr) + ":" +
+                        std::to_string(static_cast<unsigned int>(portReadable(sourceaddr.sin_port))) +
+                        "_" + std::to_string(received_message->sequence_number);
+
+        this->send(sourceaddr.sin_addr.s_addr, sourceaddr.sin_port, NULL, ACK, false, received_message->source_id, 
+                   0, 0, ACKNOWLEDGEMENT, received_message->round);
+        
+            auto found = this->received_message.find(ack_key);
+            if (found == this->received_message.end()) {
+                this->received_message.insert({ack_key, true});
+                if (logging) {
+                    this->file_logger->log_deliver(received_message->source_id, received_message->sequence_number);
+                }
+            }    
 }
 
 

@@ -44,6 +44,8 @@ class Perfect_Link {
 
         // helpers for receiver
         void receiver_checker_null_setter(Message *data_recv, Message *header);
+        void receiver_ack(Message *received_message);
+        void receiver_ack_else(Message *received_message, sockaddr_in sourceaddr, bool logging);
 
         // getters
         unsigned long get_sequence_number();
