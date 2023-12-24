@@ -1,5 +1,7 @@
 #include "perfect_link.hpp"
 
+#include <stdexcept>
+
 // CONSTRUCTOR
 Perfect_Link::Perfect_Link(
                             in_addr_t ip, 
@@ -11,7 +13,7 @@ Perfect_Link::Perfect_Link(
     this->sequence_number = 1;
     this->id = id;
     this->port = port;
-    this->logger = logger;
+    this->file_logger = logger;
     this->ip = ip;
     this->enable_listener = enable_listener;
     this->socket_fd = this->create_socket(ip, port);
@@ -23,30 +25,24 @@ Perfect_Link::~Perfect_Link() {
     close(this->socket_fd);
 }
 
-int Perfect_Link::create_socket(
-                            in_addr_t ip, 
-                            unsigned short port
-                            ) {
-    struct sockaddr_in servaddr;
-    int sockfd;
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) { 
-        perror("Failed to create the socket!"); 
-        exit(EXIT_FAILURE); 
+int Perfect_Link::create_socket(in_addr_t ip, unsigned short port) {
+    // Create socket
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        throw std::runtime_error("Failed to create the socket!");
     }
-    
-    memset(&servaddr, 0, sizeof(servaddr)); 
-     
-    servaddr.sin_family    = AF_INET; 
+
+    // Set up server address structure
+    sockaddr_in servaddr;
+    servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = ip;
-    servaddr.sin_port = port; 
-            
-    auto addr = reinterpret_cast<const struct sockaddr *>(&servaddr);
-            
-    if (bind(sockfd, addr, sizeof(servaddr)) < 0) 
-    { 
-        perror("Failed to bind the socket!"); 
-        exit(EXIT_FAILURE); 
-    } 
+    servaddr.sin_port = port;
+
+    // Bind socket to the address
+    if (bind(sockfd, reinterpret_cast<const sockaddr*>(&servaddr), sizeof(servaddr)) < 0) {
+        close(sockfd);
+        throw std::runtime_error("Failed to bind the socket!");
+    }
 
     return sockfd;
 }
@@ -141,7 +137,7 @@ void Perfect_Link::send(in_addr_t ip, unsigned short port, void *content, messag
         this->message_history.insert({key, message});
         this->add_element_queue.unlock();
         if (logging) {
-            this->logger->log_broadcast(this->sequence_number);
+            this->file_logger->log_broadcast(this->sequence_number);
         }
     } else if (message->type == RSYN) {
         this->add_element_queue.lock();
@@ -242,7 +238,7 @@ Message* Perfect_Link::receive(bool logging, unsigned int size) {
             if (found == this->received_message.end()) {
                 this->received_message.insert({ack_key.str(), true});
                 if (logging) {
-                    this->logger->log_deliver(recv_message->source_id, recv_message->sequence_number);
+                    this->file_logger->log_deliver(recv_message->source_id, recv_message->sequence_number);
                 }
             }
     }
@@ -266,13 +262,15 @@ Message* Perfect_Link::receive(bool logging, unsigned int size) {
     return NULL;
 }
 
+
+
+
 void Perfect_Link::listen() {
     bool infinity = true;
     while(infinity) {
         this->receive(true, 0);
     }
 }
-
 
 void Perfect_Link::cleanup() {
     bool infinity = true;

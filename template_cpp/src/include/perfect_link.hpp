@@ -24,7 +24,6 @@
 
 #define CLEANUP_TIME_INTERVAL 500
 #define RETRY_TIME_INTERVAL_PF 100
-#define WAIT_TO_RETRY 501
 
 class Perfect_Link {
     public:
@@ -47,7 +46,7 @@ class Perfect_Link {
         std::mutex insert_history;
         std::mutex read_history;
         std::unordered_map<std::string, bool> received_message;
-        File_Logger *logger;
+        File_Logger *file_logger;
 
     private:
         unsigned long id;

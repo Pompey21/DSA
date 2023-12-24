@@ -227,7 +227,7 @@ void Lattice_Agreement::decide() {
 
         std::unique_lock<std::mutex> lock(this->serialize);
         if (this->active && (this->ack_count) >= (this->f + 1)) {
-            this->perfect_link->logger->log_decision(this->proposed_values[this->round]);
+            this->perfect_link->file_logger->log_decision(this->proposed_values[this->round]);
             this->active = false;
             this->round++;
         }
