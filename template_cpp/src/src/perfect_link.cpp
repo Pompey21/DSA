@@ -141,22 +141,43 @@ void Perfect_Link::send(in_addr_t ip, unsigned short port, void *content, messag
 
     std::string key = ack_key.str();
 
-    if (message->type == SYN || message->type == BROADCAST) {
-        this->add_element_queue.lock();
-        this->message_queue.insert({key, NOT_RECEIVED});
+    // if (message->type == SYN || message->type == BROADCAST) {
+    //     this->add_element_queue.lock();
+    //     this->message_queue.insert({key, NOT_RECEIVED});
 
-        this->message_history.insert({key, message});
+    //     this->message_history.insert({key, message});
+    //     this->add_element_queue.unlock();
+    //     if (logging) {
+    //         this->file_logger->log_broadcast(this->sequence_number);
+    //     }
+    // } else if (message->type == RSYN) {
+    //     this->add_element_queue.lock();
+    //     this->message_queue.insert({ack_key.str(), NOT_RECEIVED});
+    //     this->message_history.insert({ack_key.str(), message});
+    //     this->add_element_queue.unlock();
+    // }
+
+    auto updateQueue = [this](const std::string& ackKey, ack_status status, Message* msg) {
+        this->add_element_queue.lock();
+        this->message_queue.insert({ackKey, status});
+        this->message_history.insert({ackKey, msg});
         this->add_element_queue.unlock();
+    };
+
+    if (message->type == SYN || message->type == BROADCAST) {
+        updateQueue(key, NOT_RECEIVED, message);
+
         if (logging) {
             this->file_logger->log_broadcast(this->sequence_number);
         }
     } else if (message->type == RSYN) {
-        this->add_element_queue.lock();
-        this->message_queue.insert({ack_key.str(), NOT_RECEIVED});
-        this->message_history.insert({ack_key.str(), message});
-        this->add_element_queue.unlock();
+        updateQueue(ack_key.str(), NOT_RECEIVED, message);
     }
-} 
+}
+
+void Perfect_Link::send_syn() {}
+
+void Perfect_Link::send_rsyn() {}
 
 
 

@@ -35,6 +35,10 @@ class Perfect_Link {
                 unsigned int round, unsigned long seq_no = 0);
         Message* receive(bool logging, unsigned int size);
 
+        // helpers for sender
+        void send_syn();
+        void send_rsyn();
+
         // getters
         unsigned long get_sequence_number();
         unsigned long get_id();
