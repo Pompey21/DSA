@@ -40,7 +40,7 @@ Lattice_Agreement::~Lattice_Agreement() {
 }
 
 void Lattice_Agreement::start_service() {
-    this->first_proposal();
+    this->first_propose();
     std::thread propose(&Lattice_Agreement::propose, this);
     std::thread reception(&Lattice_Agreement::receive, this);
     std::thread decide(&Lattice_Agreement::decide, this);
@@ -92,7 +92,7 @@ void Lattice_Agreement::read_file() {
     }
 }
 
-void Lattice_Agreement::first_proposal() {
+void Lattice_Agreement::first_propose() {
  
         std::unique_lock<std::mutex> lock(this->serialize);
         std::cout << "PROPOSAL" << std::endl << std::flush;
@@ -142,7 +142,14 @@ void Lattice_Agreement::retry_propose() {
     }
 }
 
-// need to break this method down into sub-methods!!
+// receive is th main method but is broken down into sub-methods
+/*
+    - ACKNOWLEDGEMENT            : handles directly
+
+    - NON ACKNOWLEDGEMENT (NACK) : calls the helper method receive_nack()
+
+    - PROPOSAL                   : calls the helper method receive_proposal()
+*/
 void Lattice_Agreement::receive() {
     bool infinity = true;
     while (infinity) {
@@ -156,21 +163,21 @@ void Lattice_Agreement::receive() {
         if (message->agreement == ACKNOWLEDGEMENT && message->proposal_number == this->active_proposal_number) {
             this->ack_count += 1;
         } else if (message->agreement == NACK && message->proposal_number == this->active_proposal_number) {
-            int *value = reinterpret_cast<int *>(message->content);
-            for (int i = 1; i <= value[0]; i ++) {
-                this->proposed_values[message->round].insert(value[i]);
-            }
-            this->nack_count += 1;
+            this->receive_nack(message);
         } else if (message->agreement == PROPOSAL) {
-            receive_proposal(message);
+            this->receive_proposal(message);
         }
     
         this->serialize.unlock();
     }
 }
 
-void Lattice_Agreement::receive_nack() {
-
+void Lattice_Agreement::receive_nack(Message *message) {
+    int *value = reinterpret_cast<int *>(message->content);
+    for (int i = 1; i <= value[0]; i ++) {
+        this->proposed_values[message->round].insert(value[i]);
+    }
+    this->nack_count += 1;
 }
 
 void Lattice_Agreement::receive_proposal(Message *message) {
@@ -188,12 +195,17 @@ void Lattice_Agreement::receive_proposal(Message *message) {
                                          ACKNOWLEDGEMENT, message->round, this->sequence_number);
                 this->sequence_number ++;
     } else {
-                this->accepted_values[message->round].insert(value + 1, value + value[0] + 1);
+        this->receive_proposal_else(message, value); 
+    }
+}
 
-                int *send_values = &(this->content[this->ds + 1]);
-                send_values[0] = static_cast<int>(this->accepted_values[message->round].size());
-                int index = 1;
-                for (auto iter : this->accepted_values[message->round]) {
+void Lattice_Agreement::receive_proposal_else(Message *message, int *value) {
+    this->accepted_values[message->round].insert(value + 1, value + value[0] + 1);
+
+    int *send_values = &(this->content[this->ds + 1]);
+    send_values[0] = static_cast<int>(this->accepted_values[message->round].size());
+    int index = 1;
+    for (auto iter : this->accepted_values[message->round]) {
                     send_values[index] = iter;
                     index++;
     }
@@ -202,12 +214,10 @@ void Lattice_Agreement::receive_proposal(Message *message) {
                                          send_values, SYN, false, this->perfect_link->getID(), message->proposal_number,
                                          static_cast<unsigned int>(sizeof(int) * (send_values[0] + 1)), 
                                          NACK, message->round, this->sequence_number);
-                this->sequence_number++;
-    }
+    this->sequence_number++;
 }
 
-void Lattice_Agreement::receive_else(Message *message) {
-}
+void Lattice_Agreement::receive_else(Message *message) {}
 
 
 void Lattice_Agreement::decide() {
@@ -223,4 +233,23 @@ void Lattice_Agreement::decide() {
         }
     }
 }
+
+// GETTERS
+unsigned int Lattice_Agreement::get_ack_count() {
+    return this->ack_count;
+}
+
+unsigned int Lattice_Agreement::get_nack_count() {
+    return this->nack_count;
+}
+
+std::map<int, std::set<int>> Lattice_Agreement::get_proposed_values() {
+    return this->proposed_values;
+}
+
+std::map<int, std::set<int>> Lattice_Agreement::get_accepted_values() {
+    return this->accepted_values;
+}
+
+
 

@@ -21,18 +21,24 @@ class Lattice_Agreement {
         void start_service();
         void propose();
         void receive();
-        void first_proposal();
+        void first_propose();
         void broadcast();
         void decide();
         void retry_propose();
         void read_file();
 
-        // add some helpers for rceive()
-        void receive_nack();
+        // helpers for rceive()
+        void receive_nack(Message *message);
         void receive_proposal(Message *message);
         void receive_else(Message *message);
+        void receive_ack(Message *message);
+        void receive_proposal_else(Message *message, int *value);
 
-        // add some getters here
+        // getters
+        unsigned int get_ack_count();
+        unsigned int get_nack_count();
+        std::map<int, std::set<int>> get_proposed_values();
+        std::map<int, std::set<int>> get_accepted_values();
 
     private:
         bool active;
