@@ -302,16 +302,17 @@ void Perfect_Link::cleanup() {
 }
 
 void Perfect_Link::retry() {
-    while (true) {
+    bool infinity = true;
+    while (infinity) {
         std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_TIME_INTERVAL_PF));
 
-        std::unordered_map<std::string, ack_status> retryMessages;
+        std::unordered_map<std::string, ack_status> retry_messages;
         {
             std::unique_lock<std::mutex> lock(this->add_element_queue);
-            retryMessages = this->message_queue;
+            retry_messages = this->message_queue;
         }
 
-        for (auto& [key, status] : retryMessages) {
+        for (auto& [key, status] : retry_messages) {
             if (status == NOT_RECEIVED || status == NOT_SEND) {
                 Message* aux_message = nullptr;
 
