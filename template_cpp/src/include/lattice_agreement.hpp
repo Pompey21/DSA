@@ -13,6 +13,10 @@
 #include "file_logger.hpp"
 #include "perfect_link.hpp"
 
+#define PROPOSE_TIME_INTERVAL 500
+#define RETRY_TIME_INTERVAL 300
+#define DECIDE_TIME_INTERVAL 200
+
 class Lattice_Agreement {
     public:
         Lattice_Agreement(std::string filename, std::vector<Parser::Host> hosts, Perfect_Link *perfect_link);

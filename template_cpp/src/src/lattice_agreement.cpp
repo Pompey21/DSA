@@ -68,7 +68,7 @@ void Lattice_Agreement::broadcast() {
             data, 
             SYN, 
             false, 
-            this->perfect_link->getID(), 
+            this->perfect_link->get_id(), 
             this->active_proposal_number, 
             static_cast<unsigned int>(sizeof(int) * (data[0] + 1)), 
             PROPOSAL, this->round, this->sequence_number);
@@ -111,7 +111,7 @@ void Lattice_Agreement::first_propose() {
 void Lattice_Agreement::propose() {
     bool infinity = true;
     while (infinity) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(PROPOSE_TIME_INTERVAL));
         
         
         std::unique_lock<std::mutex> lock(this->serialize);
@@ -130,7 +130,7 @@ void Lattice_Agreement::propose() {
 void Lattice_Agreement::retry_propose() {
     bool infinity = true;
     while (infinity) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_TIME_INTERVAL));
 
         std::unique_lock<std::mutex> lock(this->serialize);
         if (this->active && this->nack_count > 0) {
@@ -191,7 +191,7 @@ void Lattice_Agreement::receive_proposal(Message *message) {
                 this->accepted_values[message->round].insert(value + 1, value + value[0] + 1);
 
                 this->perfect_link->send(this->hosts[message->source_id - 1].ip, this->hosts[message->source_id - 1].port,
-                                         NULL, SYN, false, this->perfect_link->getID(), message->proposal_number, 0,
+                                         NULL, SYN, false, this->perfect_link->get_id(), message->proposal_number, 0,
                                          ACKNOWLEDGEMENT, message->round, this->sequence_number);
                 this->sequence_number ++;
     } else {
@@ -211,7 +211,7 @@ void Lattice_Agreement::receive_proposal_else(Message *message, int *value) {
     }
 
     this->perfect_link->send(this->hosts[message->source_id - 1].ip, this->hosts[message->source_id - 1].port, 
-                                         send_values, SYN, false, this->perfect_link->getID(), message->proposal_number,
+                                         send_values, SYN, false, this->perfect_link->get_id(), message->proposal_number,
                                          static_cast<unsigned int>(sizeof(int) * (send_values[0] + 1)), 
                                          NACK, message->round, this->sequence_number);
     this->sequence_number++;
@@ -223,7 +223,7 @@ void Lattice_Agreement::receive_else(Message *message) {}
 void Lattice_Agreement::decide() {
     bool infinity = true;
     while (infinity) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::this_thread::sleep_for(std::chrono::milliseconds(DECIDE_TIME_INTERVAL));
 
         std::unique_lock<std::mutex> lock(this->serialize);
         if (this->active && (this->ack_count) >= (this->f + 1)) {

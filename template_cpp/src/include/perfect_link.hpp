@@ -22,16 +22,12 @@
 #include <sstream>
 #include <unordered_map>
 
-#define WAIT_BEFORE_CLEAN 500
+#define CLEANUP_TIME_INTERVAL 500
+#define RETRY_TIME_INTERVAL_PF 100
 #define WAIT_TO_RETRY 501
 
 class Perfect_Link {
     public:
-        std::mutex insert_history;
-        std::mutex read_history;
-        std::unordered_map<std::string, bool> received_message;
-        File_Logger *logger;
-
         Perfect_Link(in_addr_t ip, unsigned short port, unsigned long id, File_Logger *logger, bool enable_listener);
         ~Perfect_Link();
 
@@ -40,12 +36,22 @@ class Perfect_Link {
                 unsigned int round, unsigned long seq_no = 0);
         Message* receive(bool logging, unsigned int size);
 
-        unsigned long getSeqNo();
-        unsigned long getID();
+        // getters
+        unsigned long get_sequence_number();
+        unsigned long get_id();
+        unsigned short get_port();
+        int get_socket_fd();
+        std::unordered_map<std::string, Message *> get_message_history();
+        std::unordered_map<std::string, ack_status> get_message_queue();
+
+        std::mutex insert_history;
+        std::mutex read_history;
+        std::unordered_map<std::string, bool> received_message;
+        File_Logger *logger;
 
     private:
         unsigned long id;
-        unsigned long seq_no;
+        unsigned long sequence_number;
         unsigned short port;
         int socket_fd;
         bool enable_listener;
@@ -57,8 +63,8 @@ class Perfect_Link {
         std::unordered_map<std::string, Message *> message_history;
         std::unordered_map<std::string, ack_status> message_queue;
 
-        int createSocket(in_addr_t ip, unsigned short port);
-        void startService();
+        int create_socket(in_addr_t ip, unsigned short port);
+        void start_service();
         void listen();
         void cleanup();
         void retry();

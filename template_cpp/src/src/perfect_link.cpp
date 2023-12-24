@@ -1,7 +1,6 @@
 #include "perfect_link.hpp"
 
-using namespace std;
-
+// CONSTRUCTOR
 Perfect_Link::Perfect_Link(
                             in_addr_t ip, 
                             unsigned short port, 
@@ -9,21 +8,22 @@ Perfect_Link::Perfect_Link(
                             File_Logger *logger, 
                             bool enable_listener
                             ) {
-    this->seq_no = 1;
+    this->sequence_number = 1;
     this->id = id;
     this->port = port;
     this->logger = logger;
     this->ip = ip;
     this->enable_listener = enable_listener;
-    this->socket_fd = this->createSocket(ip, port);
-    this->startService();
+    this->socket_fd = this->create_socket(ip, port);
+    this->start_service();
 }
 
+// DECONTRUCTOR
 Perfect_Link::~Perfect_Link() {
     close(this->socket_fd);
 }
 
-int Perfect_Link::createSocket(
+int Perfect_Link::create_socket(
                             in_addr_t ip, 
                             unsigned short port
                             ) {
@@ -51,12 +51,12 @@ int Perfect_Link::createSocket(
     return sockfd;
 }
 
-void Perfect_Link::startService() {
-    thread cleanup_thread(&Perfect_Link::cleanup, this);
-    thread retry_thread(&Perfect_Link::retry, this);
+void Perfect_Link::start_service() {
+    std::thread cleanup_thread(&Perfect_Link::cleanup, this);
+    std::thread retry_thread(&Perfect_Link::retry, this);
 
     if (this->enable_listener) {
-        thread listener_thread(&Perfect_Link::listen, this);
+        std::thread listener_thread(&Perfect_Link::listen, this);
         listener_thread.detach();
     }
     cleanup_thread.detach();
@@ -110,7 +110,7 @@ void Perfect_Link::send(in_addr_t ip, unsigned short port, void *content, messag
     }
 
     if (message == NULL) {
-        cout << "Cannot create the message\n" << flush;
+        std::cout << "Cannot create the message\n" << std::flush;
         return;
     }
 
@@ -128,11 +128,11 @@ void Perfect_Link::send(in_addr_t ip, unsigned short port, void *content, messag
         return;
     }
 
-    stringstream ack_key;
+    std::stringstream ack_key;
     ack_key << ipReadable(clientaddr.sin_addr.s_addr) << ":" << portReadable(clientaddr.sin_port);
     ack_key << "_" << message->sequence_number << "_" << message->source_id;
 
-    string key = ack_key.str();
+    std::string key = ack_key.str();
 
     if (message->type == SYN || message->type == BROADCAST) {
         this->add_element_queue.lock();
@@ -141,7 +141,7 @@ void Perfect_Link::send(in_addr_t ip, unsigned short port, void *content, messag
         this->message_history.insert({key, message});
         this->add_element_queue.unlock();
         if (logging) {
-            this->logger->log_broadcast(this->seq_no);
+            this->logger->log_broadcast(this->sequence_number);
         }
     } else if (message->type == RSYN) {
         this->add_element_queue.lock();
@@ -216,11 +216,11 @@ Message* Perfect_Link::receive(bool logging, unsigned int size) {
     }
 
     if (recv_message == NULL || recv_message->source_id == 0) {
-        cout << "error received message" << endl << flush;
+        std::cout << "error received message" << std::endl << std::flush;
         return NULL;
     }
 
-    stringstream ack_key;
+    std::stringstream ack_key;
 
     if (recv_message->type == ACK) {
         ack_key << ipReadable(recv_message->ip) << ":" << portReadable(recv_message->port);
@@ -266,86 +266,105 @@ Message* Perfect_Link::receive(bool logging, unsigned int size) {
     return NULL;
 }
 
-unsigned long Perfect_Link::getSeqNo() {
-    return this->seq_no;
-}
-
 void Perfect_Link::listen() {
-    while(true) {
+    bool infinity = true;
+    while(infinity) {
         this->receive(true, 0);
     }
 }
 
 
 void Perfect_Link::cleanup() {
-    while(true) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_BEFORE_CLEAN));
-        this->add_element_queue.lock();
-        auto iterator = this->message_queue.begin();
-        auto end = this->message_queue.end();
+    bool infinity = true;
+    while (infinity) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(CLEANUP_TIME_INTERVAL));
 
-        while (iterator != end) {
-            if (iterator->second == DELETED) {
-                string key = iterator->first;
-                if (this->message_history[key] != NULL) {
-                    free(this->message_history[key]);
-                    this->message_history[key] = NULL;
+        {
+            std::unique_lock<std::mutex> lock(this->add_element_queue);
+
+            for (auto iterator = this->message_queue.begin(); iterator != this->message_queue.end();) {
+                if (iterator->second == DELETED) {
+                    const std::string key = std::move(iterator->first);
+
+                    if (this->message_history[key] != nullptr) {
+                        free(this->message_history[key]);
+                        this->message_history[key] = nullptr;
+                    }
+
+                    this->message_history.erase(key);
+                    iterator = this->message_queue.erase(iterator);
+                } else {
+                    ++iterator;
                 }
-                this->message_history.erase(key);
-                iterator = this->message_queue.erase(iterator);
-                continue;
             }
-            ++iterator;
         }
-        this->add_element_queue.unlock();
     }
 }
 
 void Perfect_Link::retry() {
-    while(true) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        this->add_element_queue.lock();
-        unordered_map<string, ack_status> retryMessages(this->message_queue);
-        this->add_element_queue.unlock();
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_TIME_INTERVAL_PF));
 
-        auto iterator = retryMessages.begin();
-        auto end = retryMessages.end();
-        
-        while (iterator != end) {
-            if (iterator->second == NOT_RECEIVED || iterator->second == NOT_SEND) {
-                this->add_element_queue.lock();
-                Message *aux_message = this->message_history[iterator->first];
-                if (aux_message == NULL) {
-                    ++iterator;
-                    continue;
+        std::unordered_map<std::string, ack_status> retryMessages;
+        {
+            std::unique_lock<std::mutex> lock(this->add_element_queue);
+            retryMessages = this->message_queue;
+        }
+
+        for (auto& [key, status] : retryMessages) {
+            if (status == NOT_RECEIVED || status == NOT_SEND) {
+                Message* aux_message = nullptr;
+
+                {
+                    std::unique_lock<std::mutex> lock(this->add_element_queue);
+                    aux_message = this->message_history[key];
                 }
-                Message *message = create_message(aux_message->source_id, aux_message->sequence_number, aux_message->content,
-                                            RSYN, aux_message->ip, aux_message->port,
-                                            aux_message->proposal_number, aux_message->agreement, aux_message->content_size,
-                                            aux_message->round); 
 
-                this->add_element_queue.unlock();
-
-                if (message == NULL) {
-                    cout << "cannot create message\n" << flush;
+                if (aux_message == nullptr) {
                     continue;
                 }
 
-                this->send(message->ip, message->port, message->content, 
-                            RSYN, true, message->source_id, message->proposal_number,
-                            message->content_size, message->agreement, 
-                            message->round, message->sequence_number);
+                Message* message = create_message(
+                    aux_message->source_id, aux_message->sequence_number, aux_message->content,
+                    RSYN, aux_message->ip, aux_message->port,
+                    aux_message->proposal_number, aux_message->agreement, aux_message->content_size,
+                    aux_message->round
+                );
 
-                if (message != NULL) {  
+                if (message == nullptr) {
+                    std::cout << "Cannot create message.\n" << std::flush;
+                    continue;
+                }
+
+                this->send(
+                    message->ip, message->port, message->content,
+                    RSYN, true, message->source_id, message->proposal_number,
+                    message->content_size, message->agreement,
+                    message->round, message->sequence_number
+                );
+
+                if (message != nullptr) {
                     free(message);
-                    message = NULL;
                 }
             }
-            ++iterator;
         }
     }
 }
 
-unsigned long Perfect_Link::getID() {
+
+// getters
+unsigned long Perfect_Link::get_id() {
     return this->id;
+}
+unsigned long Perfect_Link::get_sequence_number() {
+    return this->sequence_number;
+}
+int Perfect_Link::get_socket_fd() {
+    return this->socket_fd;
+}
+std::unordered_map<std::string, Message *> Perfect_Link::get_message_history() {
+    return this->message_history;
+}
+std::unordered_map<std::string, ack_status> Perfect_Link::get_message_queue() {
+    return this->message_queue;
 }
