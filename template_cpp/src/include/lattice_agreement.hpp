@@ -19,16 +19,18 @@ class Lattice_Agreement {
         ~Lattice_Agreement();
 
         void start_service();
-
         void propose();
         void receive();
         void first_proposal();
-
         void broadcast();
-
         void decide();
         void retry_propose();
         void read_file();
+
+        // add some helpers for rceive()
+        void receive_nack();
+        void receive_proposal(Message *message);
+        void receive_else(Message *message);
 
         // add some getters here
 
@@ -48,7 +50,7 @@ class Lattice_Agreement {
 
         Perfect_Link *perfect_link;
         std::vector<Parser::Host> hosts;
-        File_Logger *logger;
+        File_Logger *file_logger;
         std::mutex serialize;
         int *content;
         unsigned long sequence_number;

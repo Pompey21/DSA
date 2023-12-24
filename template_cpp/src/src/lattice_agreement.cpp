@@ -162,21 +162,32 @@ void Lattice_Agreement::receive() {
             }
             this->nack_count += 1;
         } else if (message->agreement == PROPOSAL) {
-            
-            int *value = reinterpret_cast<int *>(message->content);
+            receive_proposal(message);
+        }
+    
+        this->serialize.unlock();
+    }
+}
 
-            bool include_set = includes(value + 1, value + value[0] + 1, 
+void Lattice_Agreement::receive_nack() {
+
+}
+
+void Lattice_Agreement::receive_proposal(Message *message) {
+    int *value = reinterpret_cast<int *>(message->content);
+
+    bool include_set = includes(value + 1, value + value[0] + 1, 
                                         this->accepted_values[message->round].begin(), 
                                         this->accepted_values[message->round].end());
 
-            if (include_set) {
+    if (include_set) {
                 this->accepted_values[message->round].insert(value + 1, value + value[0] + 1);
 
                 this->perfect_link->send(this->hosts[message->source_id - 1].ip, this->hosts[message->source_id - 1].port,
                                          NULL, SYN, false, this->perfect_link->getID(), message->proposal_number, 0,
                                          ACKNOWLEDGEMENT, message->round, this->sequence_number);
                 this->sequence_number ++;
-            } else {
+    } else {
                 this->accepted_values[message->round].insert(value + 1, value + value[0] + 1);
 
                 int *send_values = &(this->content[this->ds + 1]);
@@ -185,18 +196,17 @@ void Lattice_Agreement::receive() {
                 for (auto iter : this->accepted_values[message->round]) {
                     send_values[index] = iter;
                     index++;
-                }
+    }
 
-                this->perfect_link->send(this->hosts[message->source_id - 1].ip, this->hosts[message->source_id - 1].port, 
+    this->perfect_link->send(this->hosts[message->source_id - 1].ip, this->hosts[message->source_id - 1].port, 
                                          send_values, SYN, false, this->perfect_link->getID(), message->proposal_number,
                                          static_cast<unsigned int>(sizeof(int) * (send_values[0] + 1)), 
                                          NACK, message->round, this->sequence_number);
                 this->sequence_number++;
-            }
-        }
-    
-        this->serialize.unlock();
     }
+}
+
+void Lattice_Agreement::receive_else(Message *message) {
 }
 
 
