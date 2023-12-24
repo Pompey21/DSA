@@ -218,21 +218,16 @@ Message* Perfect_Link::receive(bool logging, unsigned int size) {
         
     }
 
+
+
+    //===
+
     Message *recv_message = create_message(data_recv->source_id, data_recv->sequence_number, data_recv->content,
                                                 data_recv->type, data_recv->ip, data_recv->port,
                                                 data_recv->proposal_number, data_recv->agreement, 
                                                 data_recv->content_size, data_recv->round);
 
     receiver_checker_null_setter(data_recv, header);
-    // if (data_recv != NULL) {
-    //     free(data_recv);
-    //     data_recv = NULL;
-    // }
-
-    // if (header != NULL) {
-    //     free(header); 
-    //     header = NULL;
-    // }
 
     if (recv_message == NULL) {
         return NULL;
@@ -254,16 +249,22 @@ Message* Perfect_Link::receive(bool logging, unsigned int size) {
             this->message_queue[ack_key.str()] = DELETED;
         }
         this->add_element_queue.unlock();
-    } else {
-        ack_key << ipReadable(sourceaddr.sin_addr.s_addr) << ":" << portReadable(sourceaddr.sin_port);
-        ack_key << "_" << recv_message->sequence_number;
+    } 
+    else {
+        // ack_key << ipReadable(sourceaddr.sin_addr.s_addr) << ":" << portReadable(sourceaddr.sin_port);
+        // ack_key << "_" << recv_message->sequence_number;
+
+        std::string ack_key = ipReadable(sourceaddr.sin_addr.s_addr) + ":" +
+                        std::to_string(static_cast<unsigned int>(portReadable(sourceaddr.sin_port))) +
+                        "_" + std::to_string(recv_message->sequence_number);
+
 
         this->send(sourceaddr.sin_addr.s_addr, sourceaddr.sin_port, NULL, ACK, false, recv_message->source_id, 
                    0, 0, ACKNOWLEDGEMENT, recv_message->round);
         
-            auto found = this->received_message.find(ack_key.str());
+            auto found = this->received_message.find(ack_key);
             if (found == this->received_message.end()) {
-                this->received_message.insert({ack_key.str(), true});
+                this->received_message.insert({ack_key, true});
                 if (logging) {
                     this->file_logger->log_deliver(recv_message->source_id, recv_message->sequence_number);
                 }
