@@ -223,15 +223,16 @@ Message* Perfect_Link::receive(bool logging, unsigned int size) {
                                                 data_recv->proposal_number, data_recv->agreement, 
                                                 data_recv->content_size, data_recv->round);
 
-    if (data_recv != NULL) {
-        free(data_recv);
-        data_recv = NULL;
-    }
+    receiver_checker_null_setter(data_recv, header);
+    // if (data_recv != NULL) {
+    //     free(data_recv);
+    //     data_recv = NULL;
+    // }
 
-    if (header != NULL) {
-        free(header); 
-        header = NULL;
-    }
+    // if (header != NULL) {
+    //     free(header); 
+    //     header = NULL;
+    // }
 
     if (recv_message == NULL) {
         return NULL;
@@ -288,7 +289,18 @@ Message* Perfect_Link::receive(bool logging, unsigned int size) {
     return NULL;
 }
 
+// receiver helpers
+void Perfect_Link::receiver_checker_null_setter(Message *data_recv, Message *header) {
+    if (data_recv != NULL) {
+        free(data_recv);
+        data_recv = NULL;
+    }
 
+    if (header != NULL) {
+        free(header); 
+        header = NULL;
+    }
+}
 
 
 void Perfect_Link::listen() {

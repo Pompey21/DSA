@@ -42,6 +42,9 @@ class Perfect_Link {
         void send_syn();
         void send_rsyn();
 
+        // helpers for receiver
+        void receiver_checker_null_setter(Message *data_recv, Message *header);
+
         // getters
         unsigned long get_sequence_number();
         unsigned long get_id();
