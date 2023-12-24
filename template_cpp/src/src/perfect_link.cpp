@@ -71,65 +71,92 @@ void Perfect_Link::start_service() {
 
 
 
-void Perfect_Link::send(in_addr_t ip, unsigned short port, void* content, message_type type, bool logging,
-                        unsigned long source_id, int proposal_number, unsigned int size,
-                        agreement_type agreement, unsigned int round, unsigned long seq_no) {
-    auto createMessage = [this, ip, port, source_id, seq_no, content, type, proposal_number, agreement, size, round]() {
-        return create_message(source_id, seq_no, content, type, ip, port, proposal_number, agreement, size, round);
-    };
-
-    auto sendMessage = [this, size](Message* message, sockaddr_in& clientaddr) {
-        long int res = sendto(this->socket_fd, message, offsetof(Message, content) + size, 0,
-                              reinterpret_cast<struct sockaddr*>(&clientaddr), sizeof(clientaddr));
-
-        if (res == -1) {
-            throw std::runtime_error("Failed to send the message!");
-        }
-    };
-
-    auto updateQueues = [this, logging, ip, port, seq_no, source_id, type](Message* message) {
-        std::stringstream ack_key_stream;
-        ack_key_stream << ipReadable(ip) << ":" << static_cast<unsigned short>(port) << "_"
-                       << seq_no << "_" << source_id;
-
-        std::string ack_key = ack_key_stream.str();
-
-        this->add_element_queue.lock();
-
-        if (type == SYN || type == BROADCAST) {
-            this->message_queue.insert({ack_key, NOT_RECEIVED});
-            this->message_history.insert({ack_key, message});
-            if (logging) {
-                this->file_logger->log_broadcast(this->sequence_number);
-            }
-        } else if (type == RSYN) {
-            this->message_queue.insert({ack_key, NOT_RECEIVED});
-            this->message_history.insert({ack_key, message});
-        }
-
-        this->add_element_queue.unlock();
-    };
-
+void Perfect_Link::send(in_addr_t ip, unsigned short port, void *content, message_type type, bool logging, 
+                       unsigned long source_id, int proposal_number, unsigned int size, 
+                       agreement_type agreement,  unsigned int round, unsigned long seq_no) {
     struct sockaddr_in clientaddr;
-    memset(&clientaddr, 0, sizeof(clientaddr));
-    clientaddr.sin_family = AF_INET;
-    clientaddr.sin_addr.s_addr = ip;
-    clientaddr.sin_port = port;
+    int socketfd;
+    Message *message;
 
-    try {
-        std::unique_ptr<Message, std::function<void(Message*)>> message(createMessage(), &free);
-
-        if (!message) {
-            std::cout << "Cannot create the message\n" << std::flush;
-            return;
-        }
-
-        sendMessage(message.get(), clientaddr);
-        updateQueues(message.get());
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+    if (type == SYN) {
+        message = create_message(
+                                source_id, 
+                                seq_no, 
+                                content, 
+                                type, 
+                                ip, 
+                                port, 
+                                proposal_number, 
+                                agreement, 
+                                size, 
+                                round);
+    } else if (type == ACK) {
+        message = create_message(
+                                source_id, 
+                                seq_no, 
+                                content, 
+                                type, 
+                                this->ip, 
+                                this->port, 
+                                proposal_number, 
+                                agreement, 
+                                size, 
+                                round);
+    } else {
+        message = create_message(
+                                source_id, 
+                                seq_no, 
+                                content, 
+                                type, 
+                                ip, 
+                                port, 
+                                proposal_number, 
+                                agreement, 
+                                size, 
+                                round);
     }
-}
+
+    if (message == NULL) {
+        std::cout << "Cannot create the message\n" << std::flush;
+        return;
+    }
+
+    memset(&clientaddr, 0, sizeof(clientaddr));
+    clientaddr.sin_family        = AF_INET;
+    clientaddr.sin_addr.s_addr   = ip;
+    clientaddr.sin_port          = port;
+
+    long int res = sendto(this->socket_fd, message, 
+                offsetof(Message, content) + size, 0,
+                reinterpret_cast<struct sockaddr*>(&clientaddr), 
+                sizeof(clientaddr));
+
+    if (res == -1) {
+        return;
+    }
+
+    std::stringstream ack_key;
+    ack_key << ipReadable(clientaddr.sin_addr.s_addr) << ":" << portReadable(clientaddr.sin_port);
+    ack_key << "_" << message->sequence_number << "_" << message->source_id;
+
+    std::string key = ack_key.str();
+
+    if (message->type == SYN || message->type == BROADCAST) {
+        this->add_element_queue.lock();
+        this->message_queue.insert({key, NOT_RECEIVED});
+
+        this->message_history.insert({key, message});
+        this->add_element_queue.unlock();
+        if (logging) {
+            this->file_logger->log_broadcast(this->sequence_number);
+        }
+    } else if (message->type == RSYN) {
+        this->add_element_queue.lock();
+        this->message_queue.insert({ack_key.str(), NOT_RECEIVED});
+        this->message_history.insert({ack_key.str(), message});
+        this->add_element_queue.unlock();
+    }
+} 
 
 
 
