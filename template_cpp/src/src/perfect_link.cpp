@@ -241,23 +241,21 @@ Message* Perfect_Link::receive(bool logging, unsigned int size) {
     std::stringstream ack_key;
 
     if (recv_message->type == ACK) {
-        ack_key << ipReadable(recv_message->ip) << ":" << portReadable(recv_message->port);
-        ack_key << "_" << recv_message->sequence_number << "_" << recv_message->source_id;
+        std::string ack_key = ipReadable(recv_message->ip) + ":" + 
+                                std::to_string(static_cast<unsigned int>(portReadable(recv_message->port))) +
+                                "_" + std::to_string(recv_message->sequence_number) + 
+                                "_" + std::to_string(recv_message->source_id);
         
         this->add_element_queue.lock();
-        if (this->message_queue.find(ack_key.str()) != this->message_queue.end()) {
-            this->message_queue[ack_key.str()] = DELETED;
+        if (this->message_queue.find(ack_key) != this->message_queue.end()) {
+            this->message_queue[ack_key] = DELETED;
         }
         this->add_element_queue.unlock();
     } 
     else {
-        // ack_key << ipReadable(sourceaddr.sin_addr.s_addr) << ":" << portReadable(sourceaddr.sin_port);
-        // ack_key << "_" << recv_message->sequence_number;
-
         std::string ack_key = ipReadable(sourceaddr.sin_addr.s_addr) + ":" +
                         std::to_string(static_cast<unsigned int>(portReadable(sourceaddr.sin_port))) +
                         "_" + std::to_string(recv_message->sequence_number);
-
 
         this->send(sourceaddr.sin_addr.s_addr, sourceaddr.sin_port, NULL, ACK, false, recv_message->source_id, 
                    0, 0, ACKNOWLEDGEMENT, recv_message->round);
