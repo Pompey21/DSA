@@ -31,7 +31,7 @@ class Metadata {
             this->sequence_number = sequence_number;
         }
 
-        // dstructor
+        // destructor
         ~Metadata() {}
 };
 
@@ -53,7 +53,10 @@ Message *create_message(unsigned long source_id, unsigned long sequence_number, 
                         in_addr_t ip, unsigned short port, int proposal_number, agreement_type agreement,
                         unsigned int size, unsigned int round);
 
-void message_to_string(Message *message);
-
 std::string ip_to_readable(in_addr_t ip);
+std::string message_type_to_readable(message_type msg_typ);
+std::string ack_status_to_readable(ack_status ask_stat);
+std::string agreement_type_to_readable(agreement_type agr_typ);
+
 unsigned short port_to_readable(unsigned short port);
+

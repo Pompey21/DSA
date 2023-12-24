@@ -14,12 +14,17 @@ Message *create_message(
 
     int message_size = size == 0 ? static_cast<int>(sizeof(Message)) : static_cast<int>(offsetof(Message, content) + size);
     Message *message = reinterpret_cast<Message *>(malloc(message_size));
-    if (message == NULL) return NULL;
+    if (message == nullptr) {
+        return nullptr;
+    }
+
     message->source_id = source_id;
     message->sequence_number = sequence_number;
-    if (data != NULL && size > 0) {
+
+    if (data != nullptr && size > 0) {
         memcpy(&(message->content), data, size);
     }
+
     message->type = type;
     message->ip = ip;
     message->proposal_number = proposal_number;
@@ -37,50 +42,45 @@ std::string ip_to_readable(in_addr_t ip) {
     return std::string(inet_ntoa(tmp_ip));
 }
 
-// void message_to_string(Message *message) {
-//     std::string type;
-//     std::string agreement;
-//     switch (static_cast<int>(message->type)) {
-//         case 0:
-//             type = "ACK";
-//             break;
-//         case 1:
-//             type = "SYN";
-//             break;
-//         case 2:
-//             type = "RSYN";
-//             break;
-//         case 3:
-//             type = "BROADCAST";
-//             break;
-//         default:
-//             type = "Invalid";
-//     }
+unsigned short port_to_readable( unsigned short port) { 
+    return ntohs(port); 
+}
 
-//     switch (static_cast<int>(message->agreement)) {
-//         case 0:
-//             agreement = "PROPOSAL";
-//             break;
-//         case 1:
-//             agreement = "ACK";
-//             break;
-//         case 2:
-//             agreement = "NACK";
-//             break;
-//         default:
-//             agreement = "Invalid";
-//     }
+std::string message_type_to_readable(message_type msg_typ) {
+    if (msg_typ == ACK) {
+        return "ACK";
+    } else if (msg_typ == SYN) {
+        return "SYN";
+    } else if (msg_typ == RSYN) {
+        return "RSYN";
+    } else if (msg_typ == BROADCAST) {
+        return "BROADCAST";
+    }
+    else {
+        return "Message Type is not consistent with the decided enum...";
+    }
+}
 
-//     std::cout << "{" << std::endl << std::flush;
-//     std::cout << "  ip: " << message->ip << std::endl << std::flush;
-//     std::cout << "  port: " << message->port << std::endl << std::flush;
-//     std::cout << "  size_content:" << message->content_size << std::endl << std::flush;
-//     std::cout << "  content_addr: " << message->content << std::endl << std::flush;
-//     std::cout << "  sequence_number: " << message->sequence_number << std::endl << std::flush;
-//     std::cout << "  source_id: " << message->source_id << std::endl << std::flush;
-//     std::cout << "  message_type: " << type << std::endl << std::flush;
-//     std::cout << "  agreement_type: " << agreement << std::endl << std::flush;
-//     std::cout << "}" << std::endl << std::flush;
-// }
+std::string ack_status_to_readable(ack_status ack_stat) {
+    if (ack_stat == NOT_SEND) {
+        return "NOT SEND";
+    } else if (ack_stat == DELETED) {
+        return "DELETED";
+    } else if (ack_stat == NOT_RECEIVED) {
+        return "NOT_RECEIVED";
+    } else {
+        return "Ack Type is not consistent with the decided enum...";
+    }
+}
 
-unsigned short port_to_readable( unsigned short port) { return ntohs(port); }
+std::string agreement_type_to_readable(agreement_type agr_type) {
+    if (agr_type == PROPOSAL) {
+        return "PROPOSAL";
+    } else if (agr_type == ACKNOWLEDGEMENT) {
+        return "ACKNOWLEDGEMENT";
+    } else if (agr_type == NACK) {
+        return "NACK";
+    } else {
+        return "Agreement Type is not consistent with the decided enum...";
+    }
+}
